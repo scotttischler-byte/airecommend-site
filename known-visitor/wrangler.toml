@@ -1,0 +1,14 @@
+name = "known-visitor"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+routes = [
+  { pattern = "airecommend.ai/whosthere*", zone_name = "airecommend.ai" },
+  { pattern = "www.airecommend.ai/whosthere*", zone_name = "airecommend.ai" }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "known-visitor"
+database_id = "a086338a-904d-4f46-a993-bcba69bc4cba"
