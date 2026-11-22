@@ -122,11 +122,16 @@ async function collect(request, env, ctx) {
     }
   }
   if (stmts.length) await env.DB.batch(stmts);
-  // Hot-visitor alert: a real (non-bot) visitor who hits a high-intent page, once per visitor per day.
+  // Hot-visitor alerts (consented visitors only): high-intent page, tapped call/email, started a form, or identified themselves.
   const first = (b.events || [])[0];
-  if (first && !bot && first.type === "view" && first.vid && KEY_PAGES.test(first.path || "")) {
+  if (first && !bot && first.vid && !first.anon) {
     const who = kind === "company" ? org : [cf.city, cf.region].filter(Boolean).join(", ") || "a visitor";
-    ctx.waitUntil(alert(env, site, `Hot visitor on ${site.name || site.site}: ${who} viewed ${s(first.path, 100)}`, first.vid, day));
+    const nm = site.name || site.site; let why = null, key = first.type;
+    if (first.type === "view" && KEY_PAGES.test(first.path || "")) why = `viewed ${s(first.path, 100)}`;
+    else if (first.type === "click" && first.detail && (first.detail.kind === "phone" || first.detail.kind === "email")) why = `tapped ${first.detail.kind} (${s(first.detail.text, 40)}) on ${s(first.path, 80)}`;
+    else if (first.type === "form_start") why = `started a form on ${s(first.path, 80)}`;
+    else if (first.type === "identify" && first.detail) { why = `identified themselves: ${s(first.detail.name, 60) || ""} ${s(first.detail.email, 80) || ""}`; key = "identify"; }
+    if (why) ctx.waitUntil(alert(env, site, `Hot visitor on ${nm}: ${who} ${why}`, first.vid + ":" + key, day));
   }
   return json({ ok: true }, 200, corsHeaders());
 }
@@ -135,7 +140,13 @@ async function alert(env, site, text, vid, day) {
   if (!site.alert_webhook) return;
   const r = await env.DB.prepare(`INSERT OR IGNORE INTO alerts (site,vid,day) VALUES (?,?,?)`).bind(site.site, vid, day).run();
   if (!r.meta || !r.meta.changes) return;
-  try { await fetch(site.alert_webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, site: site.name, at: new Date().toISOString() }) }); } catch { }
+  try {
+    if (/^https:\/\/ntfy\.sh\//.test(site.alert_webhook)) { // free push + email, no account needed
+      const em = await env.DB.prepare(`SELECT v FROM settings WHERE k='alert_email'`).first().catch(() => null);
+      const h = { Title: "Who's There", Tags: "eyes", Priority: "high" }; if (em && em.v) h.Email = em.v;
+      await fetch(site.alert_webhook, { method: "POST", headers: h, body: text });
+    } else await fetch(site.alert_webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, site: site.name, at: new Date().toISOString() }) });
+  } catch { }
 }
 
 // ---------------------------------------------------------------- dashboard
