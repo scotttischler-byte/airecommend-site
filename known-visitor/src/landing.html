@@ -55,7 +55,7 @@ h2{font-size:clamp(1.7rem,3.2vw,2.4rem);letter-spacing:-.02em;line-height:1.15;c
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}
 .card h3{color:var(--ink);margin:12px 0 6px;font-size:1.1rem}.card p{margin:0}
 .num{width:34px;height:34px;border-radius:10px;background:var(--grad);color:#fff;font-weight:800;display:grid;place-items:center}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:38px}
+.tw2{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.cmp{border-collapse:collapse;width:100%;min-width:640px}.cmp th{color:var(--ink);text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px}.cmp td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}.cmp td:first-child{color:var(--ink);font-weight:700;white-space:nowrap}.cmp tr:last-child td{border-bottom:0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:38px}
 @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.grid{grid-template-columns:1fr}}
 .ic{font-size:22px}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:38px}@media(max-width:800px){.split{grid-template-columns:1fr}}
@@ -83,7 +83,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 </head>
 <body>
 <nav><div class="wrap"><a class="mark" href="https://airecommend.ai"><b>AI</b>recommend<i>.ai</i></a>
-<div class="links"><a class="h" href="#how">How it works</a><a class="h" href="#honest">What it does</a><a class="h" href="#pricing">Pricing</a><a class="h" href="#faq">FAQ</a><a class="btn p s" href="#access">Get early access</a></div></div></nav>
+<div class="links"><a class="h" href="#how">How it works</a><a class="h" href="#honest">What it does</a><a class="h" href="#compare">Compare</a><a class="h" href="#pricing">Pricing</a><a class="h" href="#faq">FAQ</a><a class="btn p s" href="#access">Get early access</a></div></div></nav>
 
 <header class="hero"><div class="wrap">
 <div>
@@ -122,6 +122,18 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 <div class="card"><div class="ic">🕷️</div><h3>AI crawler watch</h3><p>Know which AI and search crawlers read your pages, and how often, even though they never run scripts.</p></div>
 <div class="card"><div class="ic">👆</div><h3>Clicks, calls and forms</h3><p>Track taps on call and email buttons, downloads, outbound links, and who started a form. Never what they typed.</p></div>
 </div></div></section>
+
+<section id="compare" style="padding-top:0"><div class="wrap">
+<div class="kick">How it's different</div><h2>Built on consent, not on a data broker.</h2>
+<div class="tw2"><table class="cmp"><tr><th></th><th>Who's There</th><th>Person-level tools (for example RB2B)</th></tr>
+<tr><td>How a person gets named</td><td>Only when they submit a form or you identify them. Their action, their consent.</td><td>Matched against a third-party database using cookies, device IDs and IP addresses.</td></tr>
+<tr><td>Consent</td><td>Banner on by default. No ID and no company name until a visitor accepts. Honors Global Privacy Control and Do Not Track.</td><td>RB2B's own help pages say it does not enforce consent for you; you configure it and update your privacy policy.</td></tr>
+<tr><td>Visitor's right to delete</td><td>Withdrawing consent deletes that visitor's stored data from our servers.</td><td>Separate opt-out and database-removal forms.</td></tr>
+<tr><td>Where it works</td><td>Any country, because it relies on consent rather than a US-only database.</td><td>Person-level identification is US-only; other countries get company-level data.</td></tr>
+<tr><td>AI search</td><td>Shows visitors sent by ChatGPT, Perplexity, Gemini and Claude, and which AI crawlers read your pages.</td><td>Focused on identifying people for outreach.</td></tr>
+<tr><td>What it does not do</td><td>It will not hand you a stranger's name, email or LinkedIn profile.</td><td>That is what these tools are built to do.</td></tr></table></div>
+<p style="margin-top:14px;font-size:14px;color:var(--muted)">If your goal is a contact list of strangers with job titles and emails, a data-broker tool is built for that. If you want to know who is interested, act on it quickly, and stay on the right side of privacy law, that is what Who's There is for. Competitor details come from their own published pages.</p>
+</div></section>
 
 <section id="pricing" style="padding-top:0"><div class="wrap">
 <div class="kick">Pricing</div><h2>Simple monthly plans.</h2>

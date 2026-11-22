@@ -72,7 +72,7 @@ d.addEventListener("submit",function(ev){try{var f=ev.target,em=f.querySelector(
 w.KnownVisitor={
  identify:function(p){if(!allowed()||!p)return;ids();try{fetch(E+"/api/collect",{method:"POST",keepalive:true,headers:{"content-type":"text/plain"},
   body:JSON.stringify({s:S,events:[base("identify",{detail:{name:p.name,email:p.email,phone:p.phone,source:p.source||"api"}})]})})}catch(e){}},
- consent:function(yes){ls("kv_c",yes?"1":"0");optOut=!yes;if(yes){view()}else{try{localStorage.removeItem("kv_v");sessionStorage.removeItem("kv_s")}catch(e){}vid=null;sid=null}},
+ consent:function(yes){var old=ls("kv_v");ls("kv_c",yes?"1":"0");optOut=!yes;if(yes){view()}else{if(old){try{fetch(E+"/api/forget",{method:"POST",keepalive:true,headers:{"content-type":"text/plain"},body:JSON.stringify({s:S,vid:old})})}catch(e){}}try{localStorage.removeItem("kv_v");sessionStorage.removeItem("kv_s")}catch(e){}vid=null;sid=null}},
  track:function(name){send("event",{detail:{name:name}})}};
 function bar(force){if(!force&&(ls("kv_c")!==null||optOut))return;if(d.getElementById("kvb"))return;var b=d.createElement("div");b.id="kvb";
  b.setAttribute("style","position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483647;background:#111;color:#fff;font:14px/1.45 system-ui,sans-serif;padding:14px 16px;border-radius:12px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;box-shadow:0 8px 30px rgba(0,0,0,.35)");
@@ -122,7 +122,7 @@ async function collect(request, env, ctx) {
     }
   }
   if (stmts.length) await env.DB.batch(stmts);
-  // Hot-visitor alerts (consented visitors only): high-intent page, tapped call/email, started a form, or identified themselves.
+  // Hot-visitor alerts (consented visitors only): high-intent page, tapped call/email, or started a form. Identification alerts are sent separately above.
   const first = (b.events || [])[0];
   if (first && !bot && first.vid && !first.anon) {
     const who = kind === "company" ? org : [cf.city, cf.region].filter(Boolean).join(", ") || "a visitor";
@@ -130,9 +130,17 @@ async function collect(request, env, ctx) {
     if (first.type === "view" && KEY_PAGES.test(first.path || "")) why = `viewed ${s(first.path, 100)}`;
     else if (first.type === "click" && first.detail && (first.detail.kind === "phone" || first.detail.kind === "email")) why = `tapped ${first.detail.kind} (${s(first.detail.text, 40)}) on ${s(first.path, 80)}`;
     else if (first.type === "form_start") why = `started a form on ${s(first.path, 80)}`;
-    else if (first.type === "identify" && first.detail) { why = `identified themselves: ${s(first.detail.name, 60) || ""} ${s(first.detail.email, 80) || ""}`; key = "identify"; }
     if (why) ctx.waitUntil(alert(env, site, `Hot visitor on ${nm}: ${who} ${why}`, first.vid + ":" + key, day));
   }
+  return json({ ok: true }, 200, corsHeaders());
+}
+
+async function forget(request, env) {
+  let b; try { b = JSON.parse(await request.text()); } catch { return json({ error: "bad json" }, 400, corsHeaders()); }
+  await ensure(env.DB);
+  const site = await env.DB.prepare(`SELECT site FROM sites WHERE site=?`).bind(s(b.s, 40)).first(), vid = s(b.vid, 40);
+  if (!site || !vid) return json({ error: "bad request" }, 400, corsHeaders());
+  await env.DB.batch([env.DB.prepare(`DELETE FROM events WHERE site=? AND vid=?`).bind(site.site, vid), env.DB.prepare(`DELETE FROM people WHERE site=? AND vid=?`).bind(site.site, vid)]);
   return json({ ok: true }, 200, corsHeaders());
 }
 
@@ -149,7 +157,7 @@ async function alert(env, site, text, vid, day) {
 }
 
 // ---------------------------------------------------------------- dashboard
-async function dash(request, env) {
+async function dash(request, env, csv) {
   const u = new URL(request.url), siteKey = u.searchParams.get("s") || "", tok = u.searchParams.get("t") || "";
   await ensure(env.DB);
   const site = await env.DB.prepare(`SELECT * FROM sites WHERE site=?`).bind(siteKey).first();
@@ -171,14 +179,27 @@ async function dash(request, env) {
   const funnel = (await q(`SELECT SUM(type='form_start') starts, SUM(type='identify') ids, SUM(type='click' AND json_extract(detail,'$.kind') IN ('phone','email')) contacts FROM events WHERE site=? AND ts>=? AND is_bot=0`))[0] || {};
   const countries = await q(`SELECT COALESCE(country,'?') c, COUNT(*) views FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 GROUP BY c ORDER BY views DESC LIMIT 8`);
   const recent = await q(`SELECT ts, vid, path, city, region, country, device, org, org_kind FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 ORDER BY id DESC LIMIT 30`);
+  if (csv) {
+    const kind = u.searchParams.get("kind") || "companies", cell = v => { v = v == null ? "" : String(v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+    const rowsOf = kind === "people" ? [["name", "email", "phone", "source", "views", "updated"], ...people.map(x => [x.name, x.email, x.phone, x.source, x.views, x.updated])]
+      : kind === "events" ? [["time", "visitor", "page", "who_or_where", "device"], ...recent.map(v => [v.ts, (v.vid || "").slice(0, 6), v.path, v.org_kind === "company" ? v.org : [v.city, v.region, v.country].filter(Boolean).join(" "), v.device])]
+      : [["company", "score", "visitors", "views", "pages", "key_pages", "city", "region", "last_seen"], ...companies.map(c => [c.org, c.views + 5 * c.key_hits, c.visitors, c.views, c.pages, c.key_hits, c.city, c.region, c.last])];
+    return new Response(rowsOf.map(r => r.map(cell).join(",")).join("\r\n"), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="whos-there-${kind}-${days}d.csv"`, "cache-control": "no-store" } });
+  }
   const tbl = (head, rows) => `<div class="tw"><table><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${head.length}" class="m">No data yet</td></tr>`}</table></div>`;
+  const enc = encodeURIComponent, band = s => s >= 25 ? "Hot" : s >= 10 ? "Warm" : "New";
+  const callFirst = companies.length ? `<div class="cf">${companies.slice(0, 5).map(c => { const sc = c.views + 5 * c.key_hits; return `<div class="cc"><div><b>${esc(c.org)}</b> <span class="bd ${band(sc)}">${band(sc)}</span><div class="m">${c.visitors} visitor${c.visitors == 1 ? "" : "s"} · ${c.views} views · ${c.pages} pages${c.key_hits ? " · " + c.key_hits + " key page" + (c.key_hits == 1 ? "" : "s") : ""} · ${esc([c.city, c.region].filter(Boolean).join(", "))}</div></div><div class="lk"><a target="_blank" rel="noopener" href="https://www.linkedin.com/search/results/companies/?keywords=${enc(c.org)}">LinkedIn</a><a target="_blank" rel="noopener" href="https://www.google.com/search?q=${enc(c.org + " " + (c.city || ""))}">Google</a></div></div>`; }).join("")}</div>` : `<div class="tw"><table><tr><td class="m">No companies yet. Consented visitors from business networks show up here.</td></tr></table></div>`;
+  const base0 = u.pathname.startsWith(BASE) ? BASE : "";
+  const dl = k => `?s=${esc(site.site)}&t=${esc(tok)}&days=${days}&kind=${k}`;
   const rng = [1, 7, 30, 90].map(d => `<a ${d === days ? 'class="on"' : ""} href="?s=${esc(site.site)}&t=${esc(tok)}&days=${d}">${d === 1 ? "24h" : d + "d"}</a>`).join("");
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(site.name)} · Known Visitor</title>
 <style>*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#e8ecf5;font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding:20px clamp(14px,4vw,40px)}h1{margin:0;font-size:26px}h2{font-size:16px;margin:28px 0 10px;color:#9fb0d6;text-transform:uppercase;letter-spacing:.08em}.sub{color:#8392b5;margin:4px 0 18px}.r a{display:inline-block;padding:6px 12px;margin:0 6px 6px 0;border:1px solid #2a3558;border-radius:999px;color:#c9d4ee;text-decoration:none}.r a.on{background:#3b6cff;border-color:#3b6cff;color:#fff}
 .k{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.k div{background:#121a33;border:1px solid #22305a;border-radius:12px;padding:14px}.k b{display:block;font-size:28px}.k small{color:#8392b5;text-transform:uppercase;font-size:11px;letter-spacing:.1em}
-.tw{overflow-x:auto;background:#121a33;border:1px solid #22305a;border-radius:12px}table{border-collapse:collapse;width:100%}th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8392b5;text-align:left;padding:10px 12px;border-bottom:1px solid #22305a}td{padding:9px 12px;border-bottom:1px solid #1b2748;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}.m{color:#8392b5;text-align:center;padding:22px}.g{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:860px){.g{grid-template-columns:1fr}}.note{color:#8392b5;font-size:12px;margin-top:6px}</style></head><body>
+body{overflow-x:hidden}.g>div,.cf{min-width:0}.cf{display:grid;gap:10px}.cc{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;background:#121a33;border:1px solid #22305a;border-radius:12px;padding:12px 14px}.cc b{color:#fff}.cc .m{color:#8392b5;font-size:13px}.lk{display:flex;gap:8px}.lk a{border:1px solid #2f5bea;border-radius:8px;padding:5px 10px;font-size:13px;color:#cfe}.bd{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;text-transform:uppercase}.bd.Hot{background:#d64545;color:#fff}.bd.Warm{background:#c47f00;color:#fff}.bd.New{background:#22305a;color:#8392b5}.tw{overflow-x:auto;background:#121a33;border:1px solid #22305a;border-radius:12px}table{border-collapse:collapse;width:100%}th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8392b5;text-align:left;padding:10px 12px;border-bottom:1px solid #22305a}td{padding:9px 12px;border-bottom:1px solid #1b2748;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}.m{color:#8392b5;text-align:center;padding:22px}.g{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:860px){.g{grid-template-columns:1fr}}.note{color:#8392b5;font-size:12px;margin-top:6px}</style></head><body>
 <h1>${esc(site.name)}</h1><p class="sub">Known Visitor · ${esc(site.domain || "")}</p><div class="r">${rng}</div>
 <div class="k"><div><b>${tot.views || 0}</b><small>All page views</small></div><div><b>${tot.visitors || 0}</b><small>Consented visitors</small></div><div><b>${tot.anon || 0}</b><small>Anonymous views</small></div><div><b>${tot.sessions || 0}</b><small>Sessions</small></div><div><b>${companies.length}</b><small>Companies</small></div><div><b>${people.length}</b><small>People</small></div><div><b>${Math.round(eng.s || 0)}s</b><small>Avg time</small></div></div>
+<h2>Call these first</h2>${callFirst}
+<p class="note">Ranked by pages read, with extra weight for pricing, contact, booking and quote pages. Links open a search for that company, so you can find the right person.</p>
 <h2>Companies visiting</h2>${tbl(["Company", "Score", "Visitors", "Views", "Pages", "Key pages", "Where", "Last seen"], companies.map(c => [c.org, c.views + 5 * c.key_hits, c.visitors, c.views, c.pages, c.key_hits, [c.city, c.region].filter(Boolean).join(", "), (c.last || "").slice(0, 16).replace("T", " ")]))}
 <p class="note">Company = the organization that owns the visitor's network, shown only for visitors who accepted. Home and mobile visitors show only as location, never a name. "Anonymous views" are visits counted without consent: no ID, no company, no IP stored.</p>
 <h2>People who identified themselves</h2>${tbl(["Name", "Email", "Phone", "How", "Views", "When"], people.map(p => [p.name, p.email, p.phone, p.source, p.views, (p.updated || "").slice(0, 16).replace("T", " ")]))}
@@ -189,6 +210,7 @@ async function dash(request, env) {
 <p class="note">Robots, not people. Seen at the edge, so they are counted even though they never run scripts.</p>
 <div class="g"><div><h2>What visitors click</h2>${tbl(["Type", "Button or link", "Clicks"], clicks.map(c => [c.kind, c.txt, c.n]))}</div><div><h2>Actions and countries</h2>${tbl(["Measure", "Count"], [["Started a form", funnel.starts || 0], ["Identified themselves", funnel.ids || 0], ["Tapped call or email", funnel.contacts || 0], ...countries.map(x => ["Views from " + x.c, x.views])])}</div></div>
 <h2>Recent visits</h2>${tbl(["Time (UTC)", "Visitor", "Page", "Who / where", "Device"], recent.map(v => [(v.ts || "").slice(0, 16).replace("T", " "), (v.vid || "").slice(0, 6), v.path, v.org_kind === "company" ? v.org : v.org_kind === "anon" ? "Anonymous (" + (v.country || "?") + ")" : [v.city, v.region, v.country].filter(Boolean).join(", "), v.device]))}
+<p class="note">Download: <a href="${base0}/dash.csv${dl("companies")}">companies</a> · <a href="${base0}/dash.csv${dl("people")}">people</a> · <a href="${base0}/dash.csv${dl("events")}">recent visits</a> (CSV)</p>
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
@@ -272,6 +294,7 @@ async function edge(request, env, ctx) {
       return res;
     }
     if (BOT.test(ua)) return res;
+    if (/^\/(dashboard|sign-in|sign-up|login|admin|account|checkout|api|rep-tools|rep-hub)(\/|$)/i.test(u.pathname)) return res; // private or logged-in areas are never tracked
     return new HTMLRewriter().on("head", { element(el) { el.append(`<script async src="/whosthere/v.js?s=${site.site}"></script>`, { html: true }); } }).transform(res);
   } catch { return res; }
 }
@@ -295,6 +318,8 @@ export default {
       if (p === "/api/collect" && request.method === "POST") return await collect(request, env, ctx);
       if (p === "/api/lead" && request.method === "POST") return await lead(request, env);
       if (p === "/dash") return await dash(request, env);
+      if (p === "/dash.csv") return await dash(request, env, true);
+      if (p === "/api/forget" && request.method === "POST") return await forget(request, env);
       if (p === "/admin") return await admin(request, env, base);
       if (p === "/api/admin/site" && request.method === "POST") {
         const auth = (request.headers.get("authorization") || "").replace(/^Bearer /, "");
