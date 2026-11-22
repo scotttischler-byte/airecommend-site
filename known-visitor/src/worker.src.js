@@ -24,7 +24,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS reps (slug TEXT PRIMARY KEY, name TEXT, first TEXT, phone TEXT, email TEXT, active INTEGER DEFAULT 1)`,
   `CREATE TABLE IF NOT EXISTS rephits (slug TEXT, day TEXT, src TEXT, n INTEGER, PRIMARY KEY (slug, day, src))`
 ];
-async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN owner_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN report_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN crm_url TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN hubspot_token TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN ref TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE leads ADD COLUMN ref TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE leads ADD COLUMN phone TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
+async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN owner_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN report_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN crm_url TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN hubspot_token TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN ref TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN brand TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE leads ADD COLUMN ref TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE leads ADD COLUMN phone TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
 
 const json = (o, status = 200, h = {}) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...h } });
 const s = (v, n) => v == null ? null : String(v).slice(0, n);
@@ -233,11 +233,11 @@ async function dash(request, env, csv) {
   const callFirst = companies.length ? `<div class="cf">${companies.slice(0, 5).map(c => { const sc = c.views + 5 * c.key_hits; return `<div class="cc"><div><b>${esc(c.org)}</b> <span class="bd ${band(sc)}">${band(sc)}</span><div class="m">${c.visitors} visitor${c.visitors == 1 ? "" : "s"} · ${c.views} views · ${c.pages} pages${c.key_hits ? " · " + c.key_hits + " key page" + (c.key_hits == 1 ? "" : "s") : ""} · ${esc([c.city, c.region].filter(Boolean).join(", "))}</div><div class="m">Why: ${esc(whyText(c, sc))}</div></div><div class="lk"><a href="${cl(c.org)}">Timeline</a><a target="_blank" rel="noopener" href="${peopleLink(c.org)}">Find people</a><a target="_blank" rel="noopener" href="https://www.linkedin.com/search/results/companies/?keywords=${enc(c.org)}">LinkedIn</a><a target="_blank" rel="noopener" href="https://www.google.com/search?q=${enc(c.org + " " + (c.city || ""))}">Google</a></div></div>`; }).join("")}</div>` : `<div class="tw"><table><tr><td class="m">No companies yet. Consented visitors from business networks show up here.</td></tr></table></div>`;
   const dl = k => `?s=${esc(site.site)}&t=${esc(tok)}&days=${days}&kind=${k}`;
   const rng = [1, 7, 30, 90].map(d => `<a ${d === days ? 'class="on"' : ""} href="?s=${esc(site.site)}&t=${esc(tok)}&days=${d}">${d === 1 ? "24h" : d + "d"}</a>`).join("");
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#0b1020"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Who's There"><link rel="manifest" href="${base0}/manifest.webmanifest?s=${esc(site.site)}&t=${esc(tok)}"><link rel="apple-touch-icon" href="${base0}/icon.png"><title>${esc(site.name)} · Known Visitor</title>
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#0b1020"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="${esc(brandOf(site))}"><link rel="manifest" href="${base0}/manifest.webmanifest?s=${esc(site.site)}&t=${esc(tok)}"><link rel="apple-touch-icon" href="${base0}/icon.png"><title>${esc(site.name)} · ${esc(brandOf(site))}</title>
 <style>*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#e8ecf5;font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding:20px clamp(14px,4vw,40px)}h1{margin:0;font-size:26px}h2{font-size:16px;margin:28px 0 10px;color:#9fb0d6;text-transform:uppercase;letter-spacing:.08em}.sub{color:#8392b5;margin:4px 0 18px}.r a{display:inline-block;padding:6px 12px;margin:0 6px 6px 0;border:1px solid #2a3558;border-radius:999px;color:#c9d4ee;text-decoration:none}.r a.on{background:#3b6cff;border-color:#3b6cff;color:#fff}
 .k{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.k div{background:#121a33;border:1px solid #22305a;border-radius:12px;padding:14px}.k b{display:block;font-size:28px}.k small{color:#8392b5;text-transform:uppercase;font-size:11px;letter-spacing:.1em}
 body{overflow-x:hidden}.g>div,.cf{min-width:0}.cf{display:grid;gap:10px}.cc{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;background:#121a33;border:1px solid #22305a;border-radius:12px;padding:12px 14px}.cc b{color:#fff}.cc .m{color:#8392b5;font-size:13px}.lk{display:flex;gap:8px}.lk a{border:1px solid #2f5bea;border-radius:8px;padding:5px 10px;font-size:13px;color:#cfe}.bd{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;text-transform:uppercase}.bd.Hot{background:#d64545;color:#fff}.bd.Warm{background:#c47f00;color:#fff}.bd.New{background:#22305a;color:#8392b5}.tw{overflow-x:auto;background:#121a33;border:1px solid #22305a;border-radius:12px}table{border-collapse:collapse;width:100%}th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8392b5;text-align:left;padding:10px 12px;border-bottom:1px solid #22305a}td{padding:9px 12px;border-bottom:1px solid #1b2748;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}.m{color:#8392b5;text-align:center;padding:22px}.g{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:860px){.g{grid-template-columns:1fr}}.note{color:#8392b5;font-size:12px;margin-top:6px}</style></head><body>
-<h1>${esc(site.name)}</h1><p class="sub">Known Visitor · ${esc(site.domain || "")}</p><div class="r">${rng}</div>
+<h1>${esc(site.name)}</h1><p class="sub">${esc(brandOf(site))} · ${esc(site.domain || "")}</p><div class="r">${rng}</div>
 <div class="k"><div><b id="livec">…</b><small>On site now</small></div><div><b>${tot.views || 0}</b><small>All page views</small></div><div><b>${tot.visitors || 0}</b><small>Consented visitors</small></div><div><b>${tot.anon || 0}</b><small>Anonymous views</small></div><div><b>${tot.sessions || 0}</b><small>Sessions</small></div><div><b>${companies.length}</b><small>Companies</small></div><div><b>${people.length}</b><small>People</small></div><div><b>${Math.round(eng.s || 0)}s</b><small>Avg time</small></div></div>
 <h2>Call these first</h2>${callFirst}
 <p class="note">Score = page views, plus 5 extra for every view of a pricing, contact, booking, demo, quote or consult page. Hot is 25 or more, Warm is 10 or more. "Why" shows what earned the score. Timeline shows their full visit. LinkedIn and Google open a search so you can find the right person.</p>
@@ -355,7 +355,7 @@ async function crmTest(request, env) {
   return json({ ok: true, message: "Test sent. Check your CRM or automation tool." });
 }
 function manifest(request, base, site) {
-  const m = { name: `Who's There · ${site.name}`, short_name: "Who's There", start_url: `${base}/dash?s=${site.site}&t=${site.token}`, scope: `${base}/`, display: "standalone", background_color: "#0b1020", theme_color: "#0b1020", icons: [{ src: `${base}/icon.png`, sizes: "512x512", type: "image/png", purpose: "any" }] };
+  const m = { name: `${brandOf(site)} · ${site.name}`, short_name: brandOf(site).slice(0, 12), start_url: `${base}/dash?s=${site.site}&t=${site.token}`, scope: `${base}/`, display: "standalone", background_color: "#0b1020", theme_color: "#0b1020", icons: [{ src: `${base}/icon.png`, sizes: "512x512", type: "image/png", purpose: "any" }] };
   return new Response(JSON.stringify(m), { headers: { "content-type": "application/manifest+json", "cache-control": "no-store" } });
 }
 
@@ -520,7 +520,45 @@ async function repsAdmin(request, env, base) {
   const u = new URL(request.url), key = u.searchParams.get("key") || ""; if (!(await isAdmin(env, key))) return new Response("Not found", { status: 404 });
   await ensure(env.DB);
   const rows = (await env.DB.prepare(`SELECT r.slug, r.name, COALESCE((SELECT SUM(n) FROM rephits h WHERE h.slug=r.slug AND h.src='qr'),0) qr, COALESCE((SELECT SUM(n) FROM rephits h WHERE h.slug=r.slug AND h.src='link'),0) link, (SELECT COUNT(*) FROM leads l WHERE l.ref=r.slug) leads, (SELECT COUNT(*) FROM sites x WHERE x.ref=r.slug) sites FROM reps r WHERE r.active=1 ORDER BY r.name`).all()).results || [];
-  return shell("Rep pages", `<style>.ld{display:block;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:14px;padding:14px 16px;margin:10px 0}.mu{color:#6b7280;font-size:14px}</style><h1>Rep pages</h1><p class="mu">Each rep has a landing page and a printable QR poster. Counts show page opens (from QR scans and links), leads and signups.</p>${rows.map(r => `<div class="ld"><b>${esc(r.name)}</b><br><a href="${base}/r/${esc(r.slug)}">Page</a> · <a href="${base}/r/${esc(r.slug)}/qr">QR poster</a><br><span class="mu">${r.qr} QR opens · ${r.link} link opens · ${r.leads} leads · ${r.sites} signups</span></div>`).join("")}`);
+  for (const r of rows) r.pk = await repKey(env, r.slug);
+  return shell("Rep pages", `<style>.ld{display:block;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:14px;padding:14px 16px;margin:10px 0}.mu{color:#6b7280;font-size:14px}</style><h1>Rep pages</h1><p class="mu">Each rep has a landing page and a printable QR poster. Counts show page opens (from QR scans and links), leads and signups.</p>${rows.map(r => `<div class="ld"><b>${esc(r.name)}</b><br><a href="${base}/r/${esc(r.slug)}">Page</a> · <a href="${base}/r/${esc(r.slug)}/qr">QR poster</a> · <a href="${base}/rep?r=${esc(r.slug)}&k=${r.pk}">Rep portal</a><br><span class="mu">${r.qr} QR opens · ${r.link} link opens · ${r.leads} leads · ${r.sites} signups</span></div>`).join("")}`);
+}
+
+// ---------------------------------------------------------------- rep portal (white-label)
+const brandOf = site => (site && site.brand && String(site.brand).trim()) || "Who's There";
+async function repKey(env, slug) {
+  let sec = env.ADMIN_KEY || "";
+  if (!sec) { try { const r = await env.DB.prepare(`SELECT v FROM settings WHERE k='admin_key'`).first(); sec = (r && r.v) || ""; } catch { } }
+  return sec ? await sha(slug + "|repportal|" + sec) : "";
+}
+async function repAuth(env, slug, k) {
+  await ensure(env.DB);
+  if (!/^[a-z0-9]{2,30}$/.test(slug || "") || !k) return null;
+  const rep = await env.DB.prepare(`SELECT * FROM reps WHERE slug=? AND active=1`).bind(slug).first();
+  if (!rep) return null;
+  const want = await repKey(env, slug);
+  return want && want === k ? rep : null;
+}
+async function repPortal(request, env, base) {
+  const u = new URL(request.url), slug = u.searchParams.get("r") || "", k = u.searchParams.get("k") || "";
+  const rep = await repAuth(env, slug, k); if (!rep) return new Response("Not found", { status: 404 });
+  const sites = (await env.DB.prepare(`SELECT site,name,domain,token,brand,created FROM sites WHERE ref=? ORDER BY created DESC`).bind(slug).all()).results || [];
+  const leads = (await env.DB.prepare(`SELECT name,email,phone,website,ts FROM leads WHERE ref=? ORDER BY ts DESC LIMIT 25`).bind(slug).all()).results || [];
+  const hits = await env.DB.prepare(`SELECT COALESCE(SUM(CASE WHEN src='qr' THEN n END),0) qr, COALESCE(SUM(CASE WHEN src='link' THEN n END),0) link FROM rephits WHERE slug=?`).bind(slug).first();
+  const css = `<style>.ld{display:block;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:14px;padding:14px 16px;margin:10px 0}.mu{color:#6b7280;font-size:14px}.ld input{margin:6px 0}</style>`;
+  const html = `${css}<h1>${esc(rep.first || rep.name)}'s Who's There</h1><p class="mu">Your page, your QR code and your customers. ${hits.qr} QR opens · ${hits.link} link opens · ${leads.length} leads · ${sites.length} customers.</p>
+<p><a href="${base}/r/${esc(slug)}">My page</a> · <a href="${base}/r/${esc(slug)}/qr">My QR poster</a></p>
+<h2>My customers</h2>${sites.length ? sites.map(x => `<div class="ld"><b>${esc(x.name)}</b> · ${esc(x.domain || "")}<br><a href="${base}/dash?s=${esc(x.site)}&t=${esc(x.token)}">Open their dashboard</a><form class="bf" data-s="${esc(x.site)}"><input name="brand" value="${esc(x.brand || "")}" placeholder="Your brand name on their dashboard (blank = Who's There)" maxlength="40"><button>Save brand</button> <span class="mu"></span></form></div>`).join("") : `<p class="mu">No customers yet. Share your page or QR poster.</p>`}
+<h2>People who asked you to reach out</h2>${leads.length ? leads.map(l => `<div class="ld"><b>${esc(l.name)}</b> · ${esc(l.email)}${l.phone ? " · " + esc(l.phone) : ""}${l.website ? "<br>" + esc(l.website) : ""}<br><span class="mu">${esc((l.ts || "").slice(0, 10))}</span></div>`).join("") : `<p class="mu">None yet.</p>`}
+<script>document.querySelectorAll(".bf").forEach(function(f){f.addEventListener("submit",function(e){e.preventDefault();var m=f.querySelector("span");fetch("${base}/api/rep/brand",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({r:${JSON.stringify(slug)},k:${JSON.stringify(k)},site:f.dataset.s,brand:f.brand.value})}).then(function(r){return r.json()}).then(function(j){m.textContent=j.ok?"Saved":"Try again"}).catch(function(){m.textContent="Try again"})})})</script>`;
+  return shell(`${rep.first || rep.name}'s customers`, html);
+}
+async function repBrand(request, env) {
+  let b; try { b = await request.json(); } catch { return json({ error: "bad request" }, 400); }
+  const rep = await repAuth(env, String(b.r || ""), String(b.k || "")); if (!rep) return json({ error: "not allowed" }, 403);
+  const brand = String(b.brand || "").replace(/[<>"'&]/g, "").trim().slice(0, 40) || null;
+  const r = await env.DB.prepare(`UPDATE sites SET brand=? WHERE site=? AND ref=?`).bind(brand, String(b.site || ""), rep.slug).run();
+  return json({ ok: !!(r.meta && r.meta.changes) });
 }
 
 // ---------------------------------------------------------------- CRM: leads, score, status, notes, follow-ups
@@ -677,6 +715,8 @@ export default {
       if (p === "/api/request" && request.method === "POST") return await privacyRequest(request, env);
       if (p === "/health") { const h = await healthCheck(env); return json({ service: "known-visitor", ...h }, h.ok ? 200 : 503); }
       if (p === "/reps") return await repsAdmin(request, env, base);
+      if (p === "/rep" && request.method === "GET") return await repPortal(request, env, base);
+      if (p === "/api/rep/brand" && request.method === "POST") return await repBrand(request, env);
       { const m = p.match(/^\/r\/([a-z0-9]{2,30})(\/qr)?$/); if (m && request.method === "GET") return m[2] ? await repPoster(env, m[1]) : await repPage(request, env, base, m[1], ctx); }
       if (p === "/crm") return await crmPage(request, env, base);
       if (p === "/crm/lead") return await crmLead(request, env, base);
