@@ -19,7 +19,9 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS leads (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, name TEXT, email TEXT, website TEXT, message TEXT, ip_hash TEXT)`,
   `CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT)`,
   `CREATE TABLE IF NOT EXISTS alerts (site TEXT, vid TEXT, day TEXT, PRIMARY KEY (site, vid, day))`,
-  `CREATE TABLE IF NOT EXISTS requests (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, kind TEXT, site TEXT, email TEXT, details TEXT, ip_hash TEXT)`
+  `CREATE TABLE IF NOT EXISTS requests (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, kind TEXT, site TEXT, email TEXT, details TEXT, ip_hash TEXT)`,
+  `CREATE TABLE IF NOT EXISTS crm (site TEXT, vid TEXT, status TEXT, notes TEXT, follow_up TEXT, owner TEXT, updated TEXT, PRIMARY KEY (site, vid))`,
+  `CREATE INDEX IF NOT EXISTS ix_ev_vid ON events (site, vid, ts)`
 ];
 async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN owner_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN report_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN crm_url TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN hubspot_token TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
 
@@ -133,6 +135,13 @@ async function collect(request, env, ctx) {
     if (first.type === "view" && KEY_PAGES.test(first.path || "")) why = `viewed ${s(first.path, 100)}`;
     else if (first.type === "click" && first.detail && (first.detail.kind === "phone" || first.detail.kind === "email")) why = `tapped ${first.detail.kind} (${s(first.detail.text, 40)}) on ${s(first.path, 80)}`;
     else if (first.type === "form_start") why = `started a form on ${s(first.path, 80)}`;
+    if (first.type === "view" && (site.alert_webhook || site.crm_url || site.hubspot_token)) {
+      try {
+        const prior = (await env.DB.prepare(`SELECT path, substr(ts,1,10) d FROM events WHERE site=? AND vid=? AND type='view' AND substr(ts,1,10)<? AND ts>=? ORDER BY ts DESC LIMIT 60`).bind(site.site, s(first.vid, 40), day, new Date(Date.now() - 14 * 864e5).toISOString()).all()).results || [];
+        const hit = prior.find(r => KEY_PAGES.test(r.path || ""));
+        if (hit) { why = null; ctx.waitUntil(alert(env, site, `Welcome back on ${nm}: ${who} is back (looked at ${s(hit.path, 80)} on ${hit.d})`, first.vid + ":back", day, { event: "returning_visitor", company: kind === "company" ? org : null, where: [cf.city, cf.region].filter(Boolean).join(", "), reason: `returned after viewing ${s(hit.path, 80)} on ${hit.d}`, page: s(first.path, 120) })); }
+      } catch { }
+    }
     if (why) ctx.waitUntil(alert(env, site, `Hot visitor on ${nm}: ${who} ${why}`, first.vid + ":" + key, day, { event: "hot_visitor", company: kind === "company" ? org : null, where: [cf.city, cf.region].filter(Boolean).join(", "), reason: why, page: s(first.path, 100) }));
   }
   return json({ ok: true }, 200, corsHeaders());
@@ -143,7 +152,7 @@ async function forget(request, env) {
   await ensure(env.DB);
   const site = await env.DB.prepare(`SELECT site FROM sites WHERE site=?`).bind(s(b.s, 40)).first(), vid = s(b.vid, 40);
   if (!site || !vid) return json({ error: "bad request" }, 400, corsHeaders());
-  await env.DB.batch([env.DB.prepare(`DELETE FROM events WHERE site=? AND vid=?`).bind(site.site, vid), env.DB.prepare(`DELETE FROM people WHERE site=? AND vid=?`).bind(site.site, vid)]);
+  await env.DB.batch([env.DB.prepare(`DELETE FROM events WHERE site=? AND vid=?`).bind(site.site, vid), env.DB.prepare(`DELETE FROM people WHERE site=? AND vid=?`).bind(site.site, vid), env.DB.prepare(`DELETE FROM crm WHERE site=? AND vid=?`).bind(site.site, vid)]);
   return json({ ok: true }, 200, corsHeaders());
 }
 
@@ -245,6 +254,7 @@ body{overflow-x:hidden}.g>div,.cf{min-width:0}.cf{display:grid;gap:10px}.cc{disp
 <div class="g"><div><h2>What visitors click</h2>${tbl(["Type", "Button or link", "Clicks"], clicks.map(c => [c.kind, c.txt, c.n]))}</div><div><h2>Actions and countries</h2>${tbl(["Measure", "Count"], [["Started a form", funnel.starts || 0], ["Identified themselves", funnel.ids || 0], ["Tapped call or email", funnel.contacts || 0], ...countries.map(x => ["Views from " + x.c, x.views])])}</div></div>
 <h2>Recent visits</h2>${tbl(["Time (UTC)", "Visitor", "Page", "Who / where", "Device"], recent.map(v => [(v.ts || "").slice(0, 16).replace("T", " "), (v.vid || "").slice(0, 6), v.path, v.org_kind === "company" ? v.org : v.org_kind === "anon" ? "Anonymous (" + (v.country || "?") + ")" : [v.city, v.region, v.country].filter(Boolean).join(", "), v.device]))}
 <p class="note">Tip: on iPhone tap Share, then Add to Home Screen. On Android tap the menu, then Install app. <a href="${base0}/settings?s=${esc(site.site)}&t=${esc(tok)}">Settings and integrations</a> · <a href="${base0}/dash.json?s=${esc(site.site)}&t=${esc(tok)}&days=${days}">JSON feed</a></p>
+<p class="note"><b><a href="${base0}/crm?s=${esc(site.site)}&t=${esc(tok)}">Your leads (CRM) →</a></b></p>
 <p class="note">Download: <a href="${base0}/dash.csv${dl("companies")}">companies</a> · <a href="${base0}/dash.csv${dl("people")}">people</a> · <a href="${base0}/dash.csv${dl("events")}">recent visits</a> (CSV)</p>
 <script>(function(){var u="${base0}/live?s=${esc(site.site)}&t=${esc(tok)}";function r(){fetch(u,{cache:"no-store"}).then(function(x){return x.json()}).then(function(j){document.getElementById("livec").textContent=j.count;var l=document.getElementById("livel");l.textContent="";if(!j.rows.length){var e=document.createElement("div");e.className="m";e.textContent="No one on the site right now.";l.appendChild(e);return}j.rows.forEach(function(v){var d=document.createElement("div");d.className="cc";d.textContent=v.who+" · "+v.path+" · "+v.ago;l.appendChild(d)})}).catch(function(){})}r();setInterval(r,15000)})();if("serviceWorker"in navigator)navigator.serviceWorker.register("${base0}/sw.js").catch(function(){})</script>
 </body></html>`;
@@ -465,6 +475,89 @@ async function lead(request, env) {
 }
 
 
+// ---------------------------------------------------------------- CRM: leads, score, status, notes, follow-ups
+const KEY_SQL = ["pric", "contact", "book", "demo", "quote", "schedule", "checkout", "buy", "apply", "get-started", "signup", "sign-up", "consult", "franchise"].map(k => `path LIKE '%${k}%'`).join(" OR ");
+const STATUSES = ["new", "contacted", "won", "lost"];
+function scoreOf(r) {
+  let n = 0;
+  n += Math.min(25, (r.keypages || 0) * 12);
+  n += (r.days || 0) >= 2 ? 20 : 0; n += (r.days || 0) >= 3 ? 5 : 0;
+  n += Math.min(30, (r.clicks || 0) * 30);
+  n += (r.forms || 0) > 0 ? 20 : 0;
+  n += r.ident ? 15 : 0;
+  n += Math.min(10, Math.max(0, (r.pages || 0) - 1) * 3);
+  if (r.last && Date.now() - Date.parse(r.last) < 864e5) n += 5;
+  return Math.max(0, Math.min(100, n));
+}
+const heat = n => n >= 70 ? "Hot" : n >= 40 ? "Warm" : "Cold";
+const heatColor = n => n >= 70 ? "#d64545" : n >= 40 ? "#c47f00" : "#6b7280";
+async function crmLeads(env, site, days = 30) {
+  const since = new Date(Date.now() - days * 864e5).toISOString();
+  const rows = (await env.DB.prepare(`SELECT vid, MAX(ts) last, MIN(ts) first, COUNT(DISTINCT substr(ts,1,10)) days, COUNT(DISTINCT path) pages,
+      COUNT(DISTINCT CASE WHEN type='view' AND (${KEY_SQL}) THEN path END) keypages,
+      SUM(type='click' AND json_extract(detail,'$.kind') IN ('phone','email')) clicks, SUM(type='form_start') forms,
+      MAX(CASE WHEN org_kind='company' THEN org END) org, MAX(city) city, MAX(region) region
+    FROM events WHERE site=? AND ts>=? AND is_bot=0 AND vid IS NOT NULL AND vid<>'' GROUP BY vid ORDER BY last DESC LIMIT 300`).bind(site.site, since).all()).results || [];
+  const people = new Map(((await env.DB.prepare(`SELECT vid,name,email,phone FROM people WHERE site=?`).bind(site.site).all()).results || []).map(p => [p.vid, p]));
+  const crm = new Map(((await env.DB.prepare(`SELECT vid,status,notes,follow_up,owner,updated FROM crm WHERE site=?`).bind(site.site).all()).results || []).map(c => [c.vid, c]));
+  return rows.map(r => { const p = people.get(r.vid) || {}, c = crm.get(r.vid) || {}; const o = { ...r, name: p.name || null, email: p.email || null, phone: p.phone || null, status: c.status || "new", notes: c.notes || "", follow_up: c.follow_up || "", owner: c.owner || "", ident: !!(p.name || p.email || p.phone) }; o.score = scoreOf(o); return o; }).sort((a, b) => b.score - a.score || Date.parse(b.last) - Date.parse(a.last));
+}
+const leadWho = r => r.name || r.email || r.org || [r.city, r.region].filter(Boolean).join(", ") || "Visitor";
+const CRM_CSS = `<style>main{max-width:760px}.chips a{display:inline-block;padding:7px 13px;border:1px solid #cfd4df;border-radius:99px;margin:3px 4px 3px 0;text-decoration:none;color:#3a4152;font-size:14px}.chips a.on{background:#2f5bea;color:#fff;border-color:#2f5bea}.ld{display:block;text-decoration:none;color:inherit;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:14px;padding:14px 16px;margin:10px 0}.ld b{color:#12151c}.sc{float:right;font-weight:800;font-size:15px;border-radius:99px;padding:3px 11px;color:#fff}.mu{color:#6b7280;font-size:14px}.due{color:#d64545;font-weight:700}.st{display:inline-block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed}.tl{border-left:3px solid #e6e8ee;padding-left:12px;margin:8px 0}.tl div{margin:6px 0;font-size:15px}.btnrow a{display:inline-block;background:#2f5bea;color:#fff;border-radius:10px;padding:11px 18px;margin:4px 6px 4px 0;text-decoration:none;font-weight:700}.btnrow a.g{background:#0f9d58}</style>`;
+async function crmPage(request, env, base) {
+  const u = new URL(request.url), site = await authSite(env, u); if (!site) return new Response("Not found", { status: 404 });
+  const tok = u.searchParams.get("t"), f = u.searchParams.get("f") || "all", today = new Date().toISOString().slice(0, 10);
+  const all = await crmLeads(env, site), link = (k) => `${base}/crm?s=${esc(site.site)}&t=${esc(tok)}&f=${k}`;
+  const due = r => r.follow_up && r.follow_up <= today && r.status !== "won" && r.status !== "lost";
+  const list = all.filter(r => f === "all" ? true : f === "due" ? due(r) : f === "hot" ? r.score >= 70 : r.status === f);
+  const cnt = { all: all.length, hot: all.filter(r => r.score >= 70).length, due: all.filter(due).length };
+  for (const k of STATUSES) cnt[k] = all.filter(r => r.status === k).length;
+  const chip = (k, t) => `<a class="${f === k ? "on" : ""}" href="${link(k)}">${t} ${cnt[k] ?? ""}</a>`;
+  const items = list.length ? list.map(r => `<a class="ld" href="${base}/crm/lead?s=${esc(site.site)}&t=${esc(tok)}&v=${encodeURIComponent(r.vid)}"><span class="sc" style="background:${heatColor(r.score)}">${r.score} ${heat(r.score)}</span><b>${esc(leadWho(r))}</b>${r.name && r.org ? ` <span class="mu">· ${esc(r.org)}</span>` : ""}<br><span class="st">${esc(r.status)}</span> <span class="mu">· ${r.days} visit day${r.days === 1 ? "" : "s"} · ${r.pages} page${r.pages === 1 ? "" : "s"} · ${ago(r.last)}</span>${due(r) ? `<br><span class="due">Follow up due ${esc(r.follow_up)}</span>` : r.follow_up ? `<br><span class="mu">Follow up ${esc(r.follow_up)}</span>` : ""}${r.owner ? `<br><span class="mu">With: ${esc(r.owner)}</span>` : ""}</a>`).join("") : `<p class="mu">No leads here yet. People show up once they accept the cookie banner and visit.</p>`;
+  return shell("Leads", `${CRM_CSS}<h1>Your leads</h1><p class="mu">Everyone who said yes to the cookie banner, ranked by how ready they look to buy. Last 30 days.</p><div class="chips">${chip("all", "All")}${chip("hot", "Hot")}${chip("due", "Follow-up due")}${chip("new", "New")}${chip("contacted", "Contacted")}${chip("won", "Won")}${chip("lost", "Lost")}</div>${items}<p class="mu"><a href="${base}/dash?s=${esc(site.site)}&t=${esc(tok)}">← Back to dashboard</a></p>`);
+}
+async function crmLead(request, env, base) {
+  const u = new URL(request.url), site = await authSite(env, u); if (!site) return new Response("Not found", { status: 404 });
+  const tok = u.searchParams.get("t"), vid = s(u.searchParams.get("v"), 40) || "";
+  const r = (await crmLeads(env, site, 365)).find(x => x.vid === vid); if (!r) return new Response("Not found", { status: 404 });
+  const ev = (await env.DB.prepare(`SELECT ts,type,path,detail FROM events WHERE site=? AND vid=? AND is_bot=0 ORDER BY id DESC LIMIT 60`).bind(site.site, vid).all()).results || [];
+  const label = { view: "Viewed", leave: "Left", click: "Tapped", form_start: "Started a form", identify: "Told us who they are", event: "Event" };
+  const tl = ev.map(e => { let d = ""; if (e.type === "click" && e.detail) { try { const j = JSON.parse(e.detail); d = ` ${j.kind || ""}`; } catch { } } return `<div><span class="mu">${esc(ago(e.ts))}</span> · ${esc(label[e.type] || e.type)}${esc(d)} <span class="mu">${esc(e.path || "")}</span></div>`; }).join("");
+  const tel = r.phone ? `<a class="g" href="tel:${esc(r.phone)}">Call ${esc(r.phone)}</a>` : "", mail = r.email ? `<a href="mailto:${esc(r.email)}">Email ${esc(r.email)}</a>` : "";
+  const opts = STATUSES.map(x => `<option value="${x}"${r.status === x ? " selected" : ""}>${x[0].toUpperCase() + x.slice(1)}</option>`).join("");
+  return shell(leadWho(r), `${CRM_CSS}<p><a href="${base}/crm?s=${esc(site.site)}&t=${esc(tok)}">← All leads</a></p><h1>${esc(leadWho(r))}</h1><p><span class="sc" style="background:${heatColor(r.score)};float:none">${r.score} ${heat(r.score)}</span> <span class="mu">${r.days} visit day${r.days === 1 ? "" : "s"} · ${r.pages} pages · first seen ${esc(ago(r.first))}</span></p>${r.org ? `<p class="mu">Network: ${esc(r.org)}</p>` : ""}<div class="btnrow">${tel}${mail}${!tel && !mail ? `<span class="mu">They haven't shared a phone or email yet.</span>` : ""}</div>
+<h2>Status and notes</h2><select id="st">${opts}</select><input id="fu" type="date" value="${esc(r.follow_up)}" aria-label="Follow-up date"><input id="ow" placeholder="Who is following up?" value="${esc(r.owner)}"><textarea id="nt" rows="4" placeholder="Notes">${esc(r.notes)}</textarea><button id="sv">Save</button><p id="ms" class="mu"></p>
+<h2>What they did</h2><div class="tl">${tl || "<div class='mu'>Nothing yet.</div>"}</div>
+<script>document.getElementById("sv").onclick=function(){var b=this;b.disabled=true;fetch("${esc(base)}/api/crm/update",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({s:${JSON.stringify(site.site)},t:${JSON.stringify(tok)},vid:${JSON.stringify(vid)},status:document.getElementById("st").value,follow_up:document.getElementById("fu").value,owner:document.getElementById("ow").value,notes:document.getElementById("nt").value})}).then(function(r){return r.json()}).then(function(j){document.getElementById("ms").textContent=j.ok?"Saved.":"Could not save.";b.disabled=false}).catch(function(){document.getElementById("ms").textContent="Could not save.";b.disabled=false})};</script>`);
+}
+async function crmUpdate(request, env) {
+  let b; try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
+  const u = new URL("https://x/?s=" + encodeURIComponent(s(b.s, 40) || "") + "&t=" + encodeURIComponent(s(b.t, 80) || "")), site = await authSite(env, u); if (!site) return json({ error: "not found" }, 404);
+  const vid = s(b.vid, 40); if (!vid) return json({ error: "vid required" }, 400);
+  const known = await env.DB.prepare(`SELECT 1 x FROM events WHERE site=? AND vid=? LIMIT 1`).bind(site.site, vid).first(); if (!known) return json({ error: "unknown lead" }, 404);
+  const status = STATUSES.includes(b.status) ? b.status : "new", fu = /^\d{4}-\d{2}-\d{2}$/.test(b.follow_up || "") ? b.follow_up : "";
+  await env.DB.prepare(`INSERT INTO crm (site,vid,status,notes,follow_up,owner,updated) VALUES (?,?,?,?,?,?,?) ON CONFLICT(site,vid) DO UPDATE SET status=excluded.status, notes=excluded.notes, follow_up=excluded.follow_up, owner=excluded.owner, updated=excluded.updated`).bind(site.site, vid, status, s(b.notes, 2000) || "", fu, s(b.owner, 80) || "", new Date().toISOString()).run();
+  return json({ ok: true });
+}
+// ---------------------------------------------------------------- health check
+async function healthCheck(env) {
+  const checks = {};
+  try { await ensure(env.DB); const r = await env.DB.prepare(`SELECT COUNT(*) n FROM sites`).first(); checks.database = r && r.n >= 0 ? "ok" : "fail"; } catch (e) { checks.database = "fail"; }
+  try { const js = snippet("kv_healthcheck", ORIGIN); checks.script = js.includes("/api/collect") && js.length > 500 ? "ok" : "fail"; } catch { checks.script = "fail"; }
+  checks.landing = typeof LANDING === "string" && LANDING.length > 5000 ? "ok" : "fail";
+  try { const r = await env.DB.prepare(`SELECT COUNT(*) n FROM crm`).first(); checks.crm = r ? "ok" : "fail"; } catch { checks.crm = "fail"; }
+  return { ok: Object.values(checks).every(v => v === "ok"), checks, at: new Date().toISOString() };
+}
+async function healthRun(env) {
+  const h = await healthCheck(env);
+  try { await env.DB.prepare(`INSERT OR REPLACE INTO settings (k,v) VALUES ('last_health',?)`).bind((h.ok ? "ok " : "FAIL ") + h.at).run(); } catch { }
+  if (!h.ok) {
+    const st = await env.DB.prepare(`SELECT * FROM sites WHERE alert_webhook IS NOT NULL AND alert_webhook<>'' LIMIT 1`).first();
+    if (st) { try { await notify(env, st, "Who's There self-check FAILED: " + Object.entries(h.checks).filter(([, v]) => v !== "ok").map(([k]) => k).join(", "), true); } catch { } }
+  }
+  return h;
+}
+
 // ---------------------------------------------------------------- edge: install on a site with no code change
 const AI_BOT = /GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Perplexity-User|Google-Extended|Googlebot|bingbot|Applebot|Amazonbot|Bytespider|CCBot|meta-externalagent|DuckAssistBot|YouBot|cohere-ai/i;
 let SITES = null, SITES_AT = 0;
@@ -492,7 +585,7 @@ async function edge(request, env, ctx) {
 const BASE = "/whosthere";
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil((async () => { await ensure(env.DB); const cut = new Date(Date.now() - 730 * 864e5).toISOString(); await env.DB.batch([env.DB.prepare(`DELETE FROM events WHERE ts<?`).bind(cut), env.DB.prepare(`DELETE FROM alerts WHERE day<?`).bind(cut.slice(0, 10))]); if (new Date().getUTCDay() === 1) { const all = (await env.DB.prepare(`SELECT * FROM sites`).all()).results || []; for (const st of all) { try { await digestRun(env, st); } catch { } } } })());
+    ctx.waitUntil((async () => { await ensure(env.DB); try { await healthRun(env); } catch { } const cut = new Date(Date.now() - 730 * 864e5).toISOString(); await env.DB.batch([env.DB.prepare(`DELETE FROM events WHERE ts<?`).bind(cut), env.DB.prepare(`DELETE FROM alerts WHERE day<?`).bind(cut.slice(0, 10))]); if (new Date().getUTCDay() === 1) { const all = (await env.DB.prepare(`SELECT * FROM sites`).all()).results || []; for (const st of all) { try { await digestRun(env, st); } catch { } } } })());
   },
   async fetch(request, env, ctx) {
     const u = new URL(request.url);
@@ -534,7 +627,10 @@ export default {
       if (p === "/api/signup" && request.method === "POST") return await signup(request, env);
       if (p === "/install") return installPage(base, u.searchParams.get("s"));
       if (p === "/api/request" && request.method === "POST") return await privacyRequest(request, env);
-      if (p === "/health") return json({ ok: true, service: "known-visitor" });
+      if (p === "/health") { const h = await healthCheck(env); return json({ service: "known-visitor", ...h }, h.ok ? 200 : 503); }
+      if (p === "/crm") return await crmPage(request, env, base);
+      if (p === "/crm/lead") return await crmLead(request, env, base);
+      if (p === "/api/crm/update" && request.method === "POST") return await crmUpdate(request, env);
       return new Response("not found", { status: 404 });
     } catch (e) { return json({ error: String(e && e.message) }, 500); }
   }
