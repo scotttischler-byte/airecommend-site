@@ -143,9 +143,10 @@ async function alert(env, site, text, vid, day) {
   if (!r.meta || !r.meta.changes) return;
   try {
     if (/^https:\/\/ntfy\.sh\//.test(site.alert_webhook)) { // free push notification, no account needed
-      await fetch(site.alert_webhook, { method: "POST", headers: { Title: "Who's There", Tags: "eyes", Priority: "high" }, body: text });
+      const rr = await fetch(site.alert_webhook, { method: "POST", headers: { Title: "Whos There", Priority: "high" }, body: text });
+      await env.DB.prepare(`INSERT OR REPLACE INTO settings (k,v) VALUES ('last_alert_status',?)`).bind(rr.status + " " + new Date().toISOString()).run();
     } else await fetch(site.alert_webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, site: site.name, at: new Date().toISOString() }) });
-  } catch { }
+  } catch (e) { try { await env.DB.prepare(`INSERT OR REPLACE INTO settings (k,v) VALUES ('last_alert_status',?)`).bind("err " + String(e).slice(0, 150)).run(); } catch { } }
 }
 
 // ---------------------------------------------------------------- dashboard
