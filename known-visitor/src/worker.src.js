@@ -141,10 +141,8 @@ async function alert(env, site, text, vid, day) {
   const r = await env.DB.prepare(`INSERT OR IGNORE INTO alerts (site,vid,day) VALUES (?,?,?)`).bind(site.site, vid, day).run();
   if (!r.meta || !r.meta.changes) return;
   try {
-    if (/^https:\/\/ntfy\.sh\//.test(site.alert_webhook)) { // free push + email, no account needed
-      const em = await env.DB.prepare(`SELECT v FROM settings WHERE k='alert_email'`).first().catch(() => null);
-      const h = { Title: "Who's There", Tags: "eyes", Priority: "high" }; if (em && em.v) h.Email = em.v;
-      await fetch(site.alert_webhook, { method: "POST", headers: h, body: text });
+    if (/^https:\/\/ntfy\.sh\//.test(site.alert_webhook)) { // free push notification, no account needed
+      await fetch(site.alert_webhook, { method: "POST", headers: { Title: "Who's There", Tags: "eyes", Priority: "high" }, body: text });
     } else await fetch(site.alert_webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, site: site.name, at: new Date().toISOString() }) });
   } catch { }
 }
