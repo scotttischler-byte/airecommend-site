@@ -20,9 +20,11 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS alerts (site TEXT, vid TEXT, day TEXT, PRIMARY KEY (site, vid, day))`,
   `CREATE TABLE IF NOT EXISTS requests (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, kind TEXT, site TEXT, email TEXT, details TEXT, ip_hash TEXT)`,
   `CREATE TABLE IF NOT EXISTS crm (site TEXT, vid TEXT, status TEXT, notes TEXT, follow_up TEXT, owner TEXT, updated TEXT, PRIMARY KEY (site, vid))`,
-  `CREATE INDEX IF NOT EXISTS ix_ev_vid ON events (site, vid, ts)`
+  `CREATE INDEX IF NOT EXISTS ix_ev_vid ON events (site, vid, ts)`,
+  `CREATE TABLE IF NOT EXISTS reps (slug TEXT PRIMARY KEY, name TEXT, first TEXT, phone TEXT, email TEXT, active INTEGER DEFAULT 1)`,
+  `CREATE TABLE IF NOT EXISTS rephits (slug TEXT, day TEXT, src TEXT, n INTEGER, PRIMARY KEY (slug, day, src))`
 ];
-async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN owner_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN report_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN crm_url TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN hubspot_token TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
+async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN owner_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN report_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN crm_url TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN hubspot_token TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN ref TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE leads ADD COLUMN ref TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE leads ADD COLUMN phone TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
 
 const json = (o, status = 200, h = {}) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...h } });
 const s = (v, n) => v == null ? null : String(v).slice(0, n);
@@ -360,12 +362,12 @@ function manifest(request, base, site) {
 // ---------------------------------------------------------------- signup, install, requests
 const PAGE_CSS = `*{box-sizing:border-box}body{margin:0;background:#fff;color:#12151c;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}main{max-width:720px;margin:0 auto;padding:28px 18px 60px}h1{font-size:2rem;letter-spacing:-.02em;margin:.2em 0}h2{font-size:1.15rem;margin:1.6em 0 .4em}p,li{color:#3a4152}.k{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#2f5bea;font-weight:700}a{color:#2f5bea}input,select,textarea,button{font:inherit;width:100%;padding:13px;border-radius:10px;border:1px solid #cfd4df;margin:6px 0}button{background:#2f5bea;color:#fff;border:0;font-weight:700;cursor:pointer}code{display:block;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:10px;padding:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;font-size:13px;margin:8px 0}.c{background:#f7f8fb;border:1px solid #e6e8ee;border-radius:12px;padding:14px 18px;margin:14px 0}.ok{background:#eefaf3;border-color:#bfe6cf}`;
 const shell = (title, inner) => new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} | Who's There</title><style>${PAGE_CSS}</style></head><body><main><div class="k">Who's There · AIrecommend.ai</div>${inner}</main></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
-function signupPage(base) {
+function signupPage(base, ref) {
   return shell("Get started", `<h1>Get your install code</h1><p>Takes about two minutes. You get a private dashboard and one line of code to put on your website. A consent banner is included, so visitors choose before anything is stored.</p>
 <form id="f"><input name="name" placeholder="Business name" required><input name="domain" placeholder="Your website (example.com)" required><input name="email" type="email" placeholder="Your email" required><button>Create my dashboard</button></form><div id="out"></div>
 <p style="font-size:14px;color:#6b7280">By continuing you agree to use this only on a website you own or manage, and to keep the consent banner on. Plans and pricing: <a href="${esc(base)}/#pricing">see pricing</a>.</p>
 <script>var f=document.getElementById("f"),o=document.getElementById("out");function line(t,c){var d=document.createElement(c?"code":"p");d.textContent=t;o.appendChild(d)}
-f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector("button");b.disabled=true;b.textContent="Creating…";fetch("${esc(base)}/api/signup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:f.name.value,domain:f.domain.value,email:f.email.value})}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){o.textContent="";if(!x.ok){line(x.j.error||"Something went wrong. Please try again.");b.disabled=false;b.textContent="Create my dashboard";return}
+f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector("button");b.disabled=true;b.textContent="Creating…";fetch("${esc(base)}/api/signup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:f.name.value,domain:f.domain.value,email:f.email.value,ref:${JSON.stringify(validRef(ref))}})}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){o.textContent="";if(!x.ok){line(x.j.error||"Something went wrong. Please try again.");b.disabled=false;b.textContent="Create my dashboard";return}
 line("You're set up. Save this page: the dashboard link is private.");line("1. Put this in your website's head section:");line(x.j.snippet,1);var a=document.createElement("p");a.innerHTML='2. <a></a> &nbsp;3. <a class="g"></a>';var l=a.querySelectorAll("a");l[0].href=x.j.install;l[0].textContent="Step-by-step install guide (WordPress, Shopify, Wix and more)";l[1].href=x.j.dashboard;l[1].textContent="Open your private dashboard";o.appendChild(a);f.style.display="none"}).catch(function(){o.textContent="Network error. Please try again.";b.disabled=false;b.textContent="Create my dashboard"})});</script>`);
 }
 function installPage(base, siteKey) {
@@ -393,9 +395,9 @@ async function signup(request, env) {
   if (mine >= 3 || all >= 40) return json({ error: "Too many sign-ups right now. Please try again tomorrow or contact us." }, 429);
   if (await env.DB.prepare(`SELECT 1 FROM sites WHERE domain=?`).bind(dom).first()) return json({ error: "That website is already set up. Contact us if you need access to it." }, 409);
   const r = await createSite(env, name, dom, null);
-  await env.DB.batch([env.DB.prepare(`UPDATE sites SET owner_email=?, report_email=? WHERE site=?`).bind(email, email, r.site), env.DB.prepare(`INSERT INTO requests (ts,kind,site,email,details,ip_hash) VALUES (?,?,?,?,?,?)`).bind(new Date().toISOString(), "signup", r.site, email, name + " / " + dom, ih)]);
+  await env.DB.batch([env.DB.prepare(`UPDATE sites SET owner_email=?, report_email=?, ref=? WHERE site=?`).bind(email, email, validRef(String(b.ref || "")) || null, r.site), env.DB.prepare(`INSERT INTO requests (ts,kind,site,email,details,ip_hash) VALUES (?,?,?,?,?,?)`).bind(new Date().toISOString(), "signup", r.site, email, name + " / " + dom, ih)]);
   SITES = null;
-  const owner = await env.DB.prepare(`SELECT * FROM sites WHERE site='kv_i8uqzb5daf3u'`).first(); if (owner) await notify(env, owner, `New Who's There signup: ${name} (${dom}) ${email}`, false);
+  const owner = await env.DB.prepare(`SELECT * FROM sites WHERE site='kv_i8uqzb5daf3u'`).first(); if (owner) await notify(env, owner, `New Who's There signup: ${name} (${dom}) ${email}${validRef(String(b.ref || "")) ? " via rep " + validRef(String(b.ref || "")) : ""}`, false);
   return json({ ok: true, snippet: `<script async src="${ORIGIN}/v.js?s=${r.site}"></script>`, dashboard: `${ORIGIN}/dash?s=${r.site}&t=${r.token}`, install: `${ORIGIN}/install?s=${r.site}` });
 }
 async function privacyRequest(request, env) {
@@ -468,11 +470,58 @@ async function lead(request, env) {
   if (!name || !email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: "name and valid email required" }, 400);
   await ensure(env.DB);
   const ip = request.headers.get("cf-connecting-ip") || "";
-  await env.DB.prepare(`INSERT INTO leads (ts,name,email,website,message,ip_hash) VALUES (?,?,?,?,?,?)`).bind(new Date().toISOString(), name, email, s(b.website, 200), s(b.message, 1000), ip ? await sha(ip + "|lead") : null).run();
+  if (b.company) return json({ ok: true });
+  const ref = validRef(String(b.ref || "")), ph = s(b.phone, 40) || null;
+  await env.DB.prepare(`INSERT INTO leads (ts,name,email,website,message,ip_hash,ref,phone) VALUES (?,?,?,?,?,?,?,?)`).bind(new Date().toISOString(), name, email, s(b.website, 200), s(b.message, 1000), ip ? await sha(ip + "|lead") : null, ref || null, ph).run();
+  try { const owner = await env.DB.prepare(`SELECT * FROM sites WHERE site='kv_i8uqzb5daf3u'`).first(); if (owner) await notify(env, owner, `New Who's There lead${ref ? " for rep " + ref : ""}: ${name} <${email}> ${ph || ""} ${s(b.website, 100) || ""}`, true); } catch { }
   if (env.LEAD_WEBHOOK) { try { await fetch(env.LEAD_WEBHOOK, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: `Who's There early-access request: ${name} <${email}> ${s(b.website, 200) || ""} ${s(b.message, 300) || ""}` }) }); } catch { } }
   return json({ ok: true });
 }
 
+
+// ---------------------------------------------------------------- rep landing pages + QR codes
+const telHref = p => { const d = String(p || "").replace(/\D/g, ""); return d.length === 10 ? "+1" + d : d.length === 11 && d[0] === "1" ? "+" + d : d ? "+" + d : ""; };
+function qrSvg(text, color = "#2f5bea", px = 6) {
+  const q = qrcode(0, "M"); q.addData(text); q.make();
+  const n = q.getModuleCount(), m = 2, size = (n + m * 2) * px; let d = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${(c + m) * px} ${(r + m) * px}h${px}v${px}h-${px}z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" role="img" aria-label="QR code" style="width:100%;height:auto;display:block"><rect width="${size}" height="${size}" fill="#fff"/><path d="${d}" fill="${color}"/></svg>`;
+}
+const repUrl = slug => `${ORIGIN}/r/${slug}`;
+const validRef = v => /^[a-z0-9]{2,30}$/.test(v || "") ? v : "";
+async function repPage(request, env, base, slug, ctx) {
+  await ensure(env.DB);
+  const rep = await env.DB.prepare(`SELECT * FROM reps WHERE slug=? AND active=1`).bind(slug).first();
+  if (!rep) return new Response("Not found", { status: 404 });
+  const u = new URL(request.url), src = u.searchParams.get("src") === "qr" ? "qr" : "link", day = new Date().toISOString().slice(0, 10);
+  ctx.waitUntil(env.DB.prepare(`INSERT INTO rephits (slug,day,src,n) VALUES (?,?,?,1) ON CONFLICT(slug,day,src) DO UPDATE SET n=n+1`).bind(slug, day, src).run());
+  const f = esc(rep.first || rep.name), tel = telHref(rep.phone);
+  const btns = `<a class="b p" href="${base}/signup?ref=${esc(slug)}">Start for $99/mo →</a>${tel ? `<a class="b g" href="tel:${esc(tel)}">Call ${f}</a><a class="b w" href="sms:${esc(tel)}">Text ${f}</a>` : ""}${rep.email ? `<a class="b w" href="mailto:${esc(rep.email)}">Email ${f}</a>` : ""}`;
+  const css = `<style>main{max-width:760px}h1 em{font-style:normal;color:#7c3aed}.sub{font-size:1.1rem}.b{display:inline-block;border-radius:12px;padding:13px 20px;margin:5px 8px 5px 0;text-decoration:none;font-weight:700}.b.p{background:linear-gradient(135deg,#2f5bea,#7c3aed);color:#fff}.b.g{background:#0f9d58;color:#fff}.b.w{background:#fff;color:#2f5bea;border:1px solid #cfd4df}.list{list-style:none;padding:0;display:grid;gap:10px}.pl{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pl div{background:#f7f8fb;border:1px solid #e6e8ee;border-radius:12px;padding:12px 14px}.pl b{font-size:1.25rem;color:#12151c}.pl span{display:block;font-size:14px;color:#6b7280}.qr{max-width:200px;margin:12px 0;border:1px solid #e6e8ee;border-radius:14px;overflow:hidden}.hp{position:absolute;left:-9999px}.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#6b7280}.chk input{width:auto;margin-top:4px}</style>`;
+  const html = `${css}<div class="k" style="margin-top:6px">With ${esc(rep.name)}</div><h1>Someone just read your prices. <em>Do you know who they were?</em></h1>
+<p class="sub">Most people look at your website, think about it, and leave without calling. You never find out. <b style="color:#7c3aed">Who's There</b> tells you which customers stopped by, what they looked at, and pings your phone the moment someone checks your prices or contact page. ${f} can have it running for you in about two minutes.</p>
+<ul class="list"><li>📱 <b>A ping on your phone</b> when someone looks at pricing, contact or booking</li><li>🧑‍💼 <b>Who your customer is</b> behind the visit, when it can be found</li><li>🤖 <b>Which AI assistants</b> (ChatGPT, Perplexity, Claude) send people to you</li><li>🔒 <b>Honest and private</b>: visitors say yes or no first, and can delete their data any time</li></ul>
+<p>${btns}</p>
+<h2>Simple monthly plans</h2><div class="pl"><div><b>$99</b><span>Starter · 1 website</span></div><div><b>$199</b><span>Growth · up to 3 websites + CRM push</span></div><div><b>$399</b><span>Pro · up to 10 websites</span></div><div><b>$999</b><span>Agency · up to 50 websites</span></div></div><p style="font-size:14px;color:#6b7280">One-time $497 setup. Card payments add a 5% fee. Need more? Ask ${f} about Custom.</p>
+<h2>Want ${f} to walk you through it?</h2>
+<form id="lf"><input name="name" placeholder="Your name" required><input name="email" type="email" placeholder="Your email" required><input name="phone" type="tel" placeholder="Phone (optional)"><input name="website" placeholder="Your website (optional)"><input class="hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="chk"><input type="checkbox" name="ok" required><span>I agree that ${f} (AIrecommend.ai) may contact me about Who's There by email or phone. No spam. I can say stop any time.</span></label><button>Send</button><p id="lm" style="color:#0f9d58;font-weight:700"></p></form>
+<h2>Share this page</h2><p>Scan to open this page on a phone.</p><div class="qr">${qrSvg(repUrl(slug) + "?src=qr")}</div><p><a href="${base}/r/${esc(slug)}/qr">Printable QR poster</a></p>
+<script>var lf=document.getElementById("lf");lf.addEventListener("submit",function(e){e.preventDefault();if(lf.company.value)return;var b=lf.querySelector("button");b.disabled=true;fetch("${esc(base)}/api/lead",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:lf.name.value,email:lf.email.value,phone:lf.phone.value,website:lf.website.value,message:"Asked ${esc(rep.first || rep.name)} to reach out",ref:${JSON.stringify(slug)}})}).then(function(r){return r.json()}).then(function(j){document.getElementById("lm").textContent=j.ok?"Thanks! ${f} will reach out soon.":(j.error||"Please try again.");if(j.ok)lf.reset();b.disabled=false}).catch(function(){document.getElementById("lm").textContent="Please try again.";b.disabled=false})});</script>`;
+  return shell(`${rep.name}: see who visits your website`, html);
+}
+async function repPoster(env, slug) {
+  await ensure(env.DB);
+  const rep = await env.DB.prepare(`SELECT * FROM reps WHERE slug=? AND active=1`).bind(slug).first();
+  if (!rep) return new Response("Not found", { status: 404 });
+  const url = repUrl(slug) + "?src=qr";
+  return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR poster · ${esc(rep.name)}</title><style>*{box-sizing:border-box}body{margin:0;font:18px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#12151c;text-align:center;padding:28px 18px}h1{font-size:2.1rem;letter-spacing:-.02em;line-height:1.12;margin:.3em 0}.k{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#2f5bea;font-weight:700}.qr{max-width:360px;margin:18px auto;border:6px solid #2f5bea;border-radius:22px;overflow:hidden}.n{font-size:1.4rem;font-weight:800}.s{color:#6b7280;font-size:15px;word-break:break-all}.pr{margin-top:20px}button{font:inherit;padding:12px 22px;border-radius:10px;border:0;background:#2f5bea;color:#fff;font-weight:700}@media print{.pr{display:none}}</style></head><body><div class="k">AIrecommend.ai · Who's There</div><h1>Who's looking at<br>your website?</h1><p>Scan to find out, and get a ping on your phone when a customer checks your prices.</p><div class="qr">${qrSvg(url, "#2f5bea", 8)}</div><div class="n">${esc(rep.name)}</div><div class="s">${esc(repUrl(slug))}</div><div class="pr"><button onclick="window.print()">Print this poster</button></div></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+async function repsAdmin(request, env, base) {
+  const u = new URL(request.url), key = u.searchParams.get("key") || ""; if (!(await isAdmin(env, key))) return new Response("Not found", { status: 404 });
+  await ensure(env.DB);
+  const rows = (await env.DB.prepare(`SELECT r.slug, r.name, COALESCE((SELECT SUM(n) FROM rephits h WHERE h.slug=r.slug AND h.src='qr'),0) qr, COALESCE((SELECT SUM(n) FROM rephits h WHERE h.slug=r.slug AND h.src='link'),0) link, (SELECT COUNT(*) FROM leads l WHERE l.ref=r.slug) leads, (SELECT COUNT(*) FROM sites x WHERE x.ref=r.slug) sites FROM reps r WHERE r.active=1 ORDER BY r.name`).all()).results || [];
+  return shell("Rep pages", `<style>.ld{display:block;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:14px;padding:14px 16px;margin:10px 0}.mu{color:#6b7280;font-size:14px}</style><h1>Rep pages</h1><p class="mu">Each rep has a landing page and a printable QR poster. Counts show page opens (from QR scans and links), leads and signups.</p>${rows.map(r => `<div class="ld"><b>${esc(r.name)}</b><br><a href="${base}/r/${esc(r.slug)}">Page</a> · <a href="${base}/r/${esc(r.slug)}/qr">QR poster</a><br><span class="mu">${r.qr} QR opens · ${r.link} link opens · ${r.leads} leads · ${r.sites} signups</span></div>`).join("")}`);
+}
 
 // ---------------------------------------------------------------- CRM: leads, score, status, notes, follow-ups
 const KEY_SQL = ["pric", "contact", "book", "demo", "quote", "schedule", "checkout", "buy", "apply", "get-started", "signup", "sign-up", "consult", "franchise"].map(k => `path LIKE '%${k}%'`).join(" OR ");
@@ -622,11 +671,13 @@ export default {
       if (p === "/sw.js") return new Response("self.addEventListener('install',function(){self.skipWaiting()});self.addEventListener('fetch',function(){});", { headers: { "content-type": "application/javascript", "cache-control": "no-store" } });
       if (p === "/live") return await live(request, env);
       if (p === "/digest") { const site = await authSite(env, u); if (!site) return new Response("Not found", { status: 404 }); const txt = u.searchParams.get("send") === "1" ? await digestRun(env, site) : await digestText(env, site); return new Response(txt, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } }); }
-      if (p === "/signup" && request.method === "GET") return signupPage(base);
+      if (p === "/signup" && request.method === "GET") return signupPage(base, u.searchParams.get("ref"));
       if (p === "/api/signup" && request.method === "POST") return await signup(request, env);
       if (p === "/install") return installPage(base, u.searchParams.get("s"));
       if (p === "/api/request" && request.method === "POST") return await privacyRequest(request, env);
       if (p === "/health") { const h = await healthCheck(env); return json({ service: "known-visitor", ...h }, h.ok ? 200 : 503); }
+      if (p === "/reps") return await repsAdmin(request, env, base);
+      { const m = p.match(/^\/r\/([a-z0-9]{2,30})(\/qr)?$/); if (m && request.method === "GET") return m[2] ? await repPoster(env, m[1]) : await repPage(request, env, base, m[1], ctx); }
       if (p === "/crm") return await crmPage(request, env, base);
       if (p === "/crm/lead") return await crmLead(request, env, base);
       if (p === "/api/crm/update" && request.method === "POST") return await crmUpdate(request, env);

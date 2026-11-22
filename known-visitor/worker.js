@@ -1,4 +1,2293 @@
 const LANDING = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Who's There \u2014 see which companies visit your website | AIrecommend.ai</title>\n<meta name=\"description\" content=\"Who's There shows which companies visit your website, which pages they read, and who raises a hand. First-party, consent-aware, set up with one line of code.\">\n<meta property=\"og:title\" content=\"Who's There \u2014 see who's on your website\">\n<meta property=\"og:description\" content=\"Know which companies visit, what they read, and when a hot visitor lands. Consent-aware. One line to install.\">\n<meta name=\"theme-color\" content=\"#0e1016\">\n<style>\n:root{--brand:#2f5bea;--brand2:#7c3aed;--tint:#eef2ff;--good:#0f9d58;--warn:#c47f00;--bad:#d64545;\n--ink:#e9ecf3;--ink2:#c2c8d6;--muted:#9aa2b1;--line:#262b36;--panel:#161a23;--bg:#0e1016;--grad:linear-gradient(135deg,#2f5bea,#7c3aed)}\n@media(prefers-color-scheme:light){:root{--ink:#12151c;--ink2:#3a4152;--muted:#6b7280;--line:#e6e8ee;--panel:#f7f8fb;--bg:#fff}}\n*{box-sizing:border-box}html{scroll-behavior:smooth}\nbody{margin:0;background:var(--bg);color:var(--ink2);font:16px/1.6 -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}\na{color:inherit;text-decoration:none}\n.wrap{max-width:1120px;margin:0 auto;padding:0 22px}\n.mark{font-weight:800;letter-spacing:-.02em;font-size:20px;color:var(--ink)}.mark b{color:var(--brand)}.mark i{font-style:normal;color:var(--muted);font-weight:600}\nnav{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}\nnav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}\nnav .links{display:flex;gap:26px;align-items:center;font-size:14px;font-weight:600}\nnav .links a:hover{color:var(--ink)}@media(max-width:720px){nav .links a.h{display:none}}\n.btn{display:inline-flex;align-items:center;gap:8px;border-radius:10px;font-weight:700;padding:13px 22px;border:1px solid transparent;cursor:pointer;font:inherit;font-weight:700;transition:transform .15s,box-shadow .15s}\n.btn.p{background:var(--grad);color:#fff;box-shadow:0 10px 30px -10px rgba(47,91,234,.7)}.btn.p:hover{transform:translateY(-2px)}\n.btn.g{border-color:var(--line);color:var(--ink);background:transparent}.btn.g:hover{background:var(--panel)}\n.btn.s{padding:9px 16px;font-size:14px}\n.hero{position:relative;overflow:hidden;padding:84px 0 70px}\n.hero:before{content:\"\";position:absolute;inset:-30% -10% auto -10%;height:120%;background:radial-gradient(60% 50% at 70% 10%,rgba(124,58,237,.35),transparent 70%),radial-gradient(50% 45% at 20% 0%,rgba(47,91,234,.4),transparent 70%);pointer-events:none}\n.hero .wrap{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}\n@media(max-width:900px){.hero .wrap{grid-template-columns:1fr}.hero{padding-top:52px}}\n.kick{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--brand)}\nh1{font-size:clamp(2.2rem,5vw,3.6rem);line-height:1.08;letter-spacing:-.03em;font-weight:800;color:var(--ink);margin:14px 0 18px}\nh1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}\n.sub{font-size:1.15rem;max-width:560px;color:var(--ink2)}\n.cta{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 16px}\n.fine{font-size:13px;color:var(--muted)}\n.feed{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 80px -30px rgba(47,91,234,.55);overflow:hidden}\n.feed .top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}\n.live{display:inline-flex;align-items:center;gap:8px;color:var(--ink);font-weight:700}.live:before{content:\"\";width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 rgba(15,157,88,.6);animation:pulse 1.8s infinite}\n@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(15,157,88,0)}100%{box-shadow:0 0 0 0 rgba(15,157,88,0)}}\n.row{display:grid;grid-template-columns:38px 1fr auto;gap:12px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line);animation:in .5s ease both}\n@keyframes in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}\n.av{width:38px;height:38px;border-radius:10px;background:var(--tint);color:var(--brand);display:grid;place-items:center;font-weight:800}\n.row b{display:block;color:var(--ink);font-size:15px;line-height:1.2}.row small{color:var(--muted);font-size:12.5px}\n.tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgba(124,58,237,.16);color:#a78bfa;white-space:nowrap}\n.tag.hot{background:rgba(214,69,69,.16);color:#f08a8a}.tag.new{background:rgba(15,157,88,.16);color:#5fd39a}\n@media(prefers-color-scheme:light){.tag{color:#6d28d9}.tag.hot{color:#b42323}.tag.new{color:#0a7a43}}\n.sample{padding:10px 18px;font-size:12px;color:var(--muted);text-align:center}\nsection{padding:78px 0}\nh2{font-size:clamp(1.7rem,3.2vw,2.4rem);letter-spacing:-.02em;line-height:1.15;color:var(--ink);margin:10px 0 14px;font-weight:800}\n.lead{max-width:640px;font-size:1.08rem}\n.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:38px}\n@media(max-width:860px){.steps{grid-template-columns:1fr}}\n.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}\n.card h3{color:var(--ink);margin:12px 0 6px;font-size:1.1rem}.card p{margin:0}\n.num{width:34px;height:34px;border-radius:10px;background:var(--grad);color:#fff;font-weight:800;display:grid;place-items:center}\n.tw2{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.cmp{border-collapse:collapse;width:100%;min-width:640px}.cmp th{color:var(--ink);text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px}.cmp td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}.cmp td:first-child{color:var(--ink);font-weight:700;white-space:nowrap}.cmp tr:last-child td{border-bottom:0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:38px}\n@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.grid{grid-template-columns:1fr}}\n.ic{font-size:22px}\n.split{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:38px}@media(max-width:800px){.split{grid-template-columns:1fr}}\n.co{border-left:4px solid var(--good);border-radius:0 14px 14px 0;background:rgba(15,157,88,.08);padding:22px}\n.co.no{border-color:var(--warn);background:rgba(196,127,0,.09)}\n.co h3{margin:0 0 10px;color:var(--ink)}.co ul{margin:0;padding-left:20px}.co li{margin:6px 0}\n.dash{margin-top:38px;border-radius:18px;border:1px solid var(--line);background:var(--panel);overflow:hidden}\n.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--line)}\n@media(max-width:700px){.kp{grid-template-columns:1fr 1fr}}\n.kp div{padding:18px 20px;border-right:1px solid var(--line)}.kp b{display:block;font-size:30px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em}.kp small{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}\ntable{width:100%;border-collapse:collapse;font-size:14px}th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:12px 20px}td{padding:12px 20px;border-top:1px solid var(--line);color:var(--ink2);font-variant-numeric:tabular-nums}td:first-child{color:var(--ink);font-weight:600}\n.scroll{overflow-x:auto}\ndetails{border-bottom:1px solid var(--line);padding:18px 0}summary{cursor:pointer;font-weight:700;color:var(--ink);font-size:1.05rem;list-style:none}summary::-webkit-details-marker{display:none}summary:after{content:\"+\";float:right;color:var(--brand);font-size:22px;line-height:1}details[open] summary:after{content:\"\u2013\"}details p{margin:10px 0 0;max-width:760px}\n.cta-box{border-radius:24px;padding:54px 30px;text-align:center;background:var(--grad);color:#fff;position:relative;overflow:hidden}\n.cta-box h2{color:#fff}.cta-box p{color:rgba(255,255,255,.88);max-width:560px;margin:0 auto 26px}\nform{display:grid;gap:10px;max-width:520px;margin:0 auto;text-align:left}\ninput,textarea{width:100%;padding:14px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font:inherit}\ninput::placeholder,textarea::placeholder{color:rgba(255,255,255,.75)}\ninput:focus,textarea:focus{outline:2px solid #fff;background:rgba(255,255,255,.2)}\n.btn.w{background:#fff;color:#2f5bea;justify-content:center}\n#ok{display:none;font-weight:700;font-size:1.1rem}\nfooter{padding:36px 0 60px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}\nfooter .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}\n</style>\n</head>\n<body>\n<nav><div class=\"wrap\"><a class=\"mark\" href=\"https://airecommend.ai\"><b>AI</b>recommend<i>.ai</i></a>\n<div class=\"links\"><a class=\"h\" href=\"#how\">How it works</a><a class=\"h\" href=\"#honest\">What it does</a><a class=\"h\" href=\"#compare\">Compare</a><a class=\"h\" href=\"/whosthere/signup\">Get started</a><a class=\"h\" href=\"#pricing\">Pricing</a><a class=\"h\" href=\"#faq\">FAQ</a><a class=\"btn p s\" href=\"#access\">Get early access</a></div></div></nav>\n\n<header class=\"hero\"><div class=\"wrap\">\n<div>\n<div class=\"kick\">AIrecommend.ai \u00b7 Who's There</div>\n<h1>Someone just read your prices. <em>Do you know who they were?</em></h1>\n<p class=\"sub\">Most people look at your website, think about it, and leave without calling. You never find out. <b style=\"color:var(--brand2)\">Who's There</b> tells you which customers stopped by, what they looked at, and sends a ping to your phone the moment someone checks your prices or contact page, so you can reach out while they're still thinking about you.</p>\n<ul style=\"list-style:none;padding:0;margin:18px 0 6px;display:grid;gap:10px;color:var(--ink2);font-size:16px\">\n<li>\ud83d\udcf1 <b>A ping on your phone</b> when someone looks at pricing, contact or booking</li>\n<li>\ud83c\udfe2 <b>Who your customer is</b> behind the visit, when it can be found</li>\n<li>\ud83e\udd16 <b>Which AI assistants</b> (ChatGPT, Perplexity, Claude) are sending people to you</li>\n<li>\ud83d\udd12 <b>Honest and private</b>: visitors say yes or no first, and can delete their data any time</li>\n</ul>\n<div class=\"cta\"><a class=\"btn p\" href=\"/whosthere/signup\">Start for $99/mo \u2192</a><a class=\"btn g\" href=\"#how\">See how it works</a></div>\n<div class=\"fine\">No tech skills needed: paste one line, live in about two minutes. When we can't tell who someone is, we say so instead of guessing.</div>\n</div>\n<div class=\"feed\" aria-label=\"Sample live visitor feed\">\n<div class=\"top\"><span class=\"live\">Live visitors</span><span>Last 24 hours</span></div>\n<div id=\"feed\"></div>\n<div class=\"sample\">Sample data for illustration</div>\n</div>\n</div></header>\n\n<section id=\"how\"><div class=\"wrap\">\n<div class=\"kick\">How it works</div><h2>Three steps. About five minutes.</h2>\n<p class=\"lead\">No new software for your visitors, no forms to add, nothing to maintain.</p>\n<div class=\"steps\">\n<div class=\"card\"><div class=\"num\">1</div><h3>Paste one line</h3><p>Add a single script tag to your site's header. It works on WordPress, Webflow, Shopify, or plain HTML.</p></div>\n<div class=\"card\"><div class=\"num\">2</div><h3>We name the company</h3><p>Each visit is matched to the organization that owns the network, with the pages viewed, time on page, and where they came from.</p></div>\n<div class=\"card\"><div class=\"num\">3</div><h3>You hear about the hot ones</h3><p>When someone lands on pricing, contact, or booking, you get an alert you can send to Slack, Make, or any webhook.</p></div>\n</div></div></section>\n\n<section style=\"padding-top:0\"><div class=\"wrap\">\n<div class=\"kick\">What you get</div><h2>Built for owners, agencies, and sales teams.</h2>\n<div class=\"grid\">\n<div class=\"card\"><div class=\"ic\">\ud83c\udfe2</div><h3>Company recognition</h3><p>See which businesses visit and how often they return, ranked by how much they read.</p></div>\n<div class=\"card\"><div class=\"ic\">\ud83d\udd25</div><h3>Hot-visitor alerts</h3><p>Pricing, contact, quote, and booking pages are flagged. One alert per visitor per day, so no noise.</p></div>\n<div class=\"card\"><div class=\"ic\">\ud83d\ude4b</div><h3>People who raise a hand</h3><p>When a visitor fills out a form, their name and email attach to their visit history. Their action, their consent.</p></div>\n<div class=\"card\"><div class=\"ic\">\ud83d\udee1\ufe0f</div><h3>Consent-first</h3><p>Honors Global Privacy Control and Do Not Track. A consent banner is on by default: visitors who haven't accepted are only counted anonymously, with no ID and no company name.</p></div>\n<div class=\"card\"><div class=\"ic\">\ud83d\udcf1</div><h3>A dashboard for every client</h3><p>Each site gets its own private, phone-friendly dashboard. Perfect for agencies and franchise networks.</p></div>\n<div class=\"card\"><div class=\"ic\">\ud83e\udd16</div><h3>Bots filtered out</h3><p>Crawlers and AI bots are kept out of your human numbers, so your counts stay honest.</p></div>\n<div class=\"card\"><div class=\"ic\">\ud83d\udcac</div><h3>AI assistants sending visitors</h3><p>See who arrived from ChatGPT, Perplexity, Gemini, Claude and more. Proof that AI is recommending you.</p></div>\n<div class=\"card\"><div class=\"ic\">\ud83d\udd77\ufe0f</div><h3>AI crawler watch</h3><p>Know which AI and search crawlers read your pages, and how often, even though they never run scripts.</p></div>\n<div class=\"card\"><div class=\"ic\">\ud83d\udc46</div><h3>Clicks, calls and forms</h3><p>Track taps on call and email buttons, downloads, outbound links, and who started a form. Never what they typed.</p></div>\n</div></div></section>\n\n<section id=\"start\" style=\"padding-top:0\"><div class=\"wrap\"><div class=\"kick\">Get started</div><h2>Be live in two minutes.</h2><p style=\"max-width:640px;color:var(--muted)\">Create your private dashboard, paste one line on your website (guides for WordPress, Shopify, Wix, Squarespace and Webflow), and visitors start showing up. A consent banner is included.</p><p><a class=\"btn p\" href=\"/whosthere/signup\">Get my install code</a> &nbsp; <a class=\"btn g\" href=\"/whosthere/install\">Install guides</a></p></div></section>\n\n<section id=\"compare\" style=\"padding-top:0\"><div class=\"wrap\">\n<div class=\"kick\">How it's different</div><h2>Built on consent, not on a data broker.</h2>\n<div class=\"tw2\"><table class=\"cmp\"><tr><th></th><th>Who's There</th><th>Person-level tools (for example RB2B)</th></tr>\n<tr><td>How a person gets named</td><td>Only when they submit a form or you identify them. Their action, their consent.</td><td>Matched against a third-party database using cookies, device IDs and IP addresses.</td></tr>\n<tr><td>Consent</td><td>Banner on by default. No ID and no company name until a visitor accepts. Honors Global Privacy Control and Do Not Track.</td><td>RB2B's own help pages say it does not enforce consent for you; you configure it and update your privacy policy.</td></tr>\n<tr><td>Visitor's right to delete</td><td>Withdrawing consent deletes that visitor's stored data from our servers.</td><td>Separate opt-out and database-removal forms.</td></tr>\n<tr><td>Where it works</td><td>Any country, because it relies on consent rather than a US-only database.</td><td>Person-level identification is US-only; other countries get company-level data.</td></tr>\n<tr><td>AI search</td><td>Shows visitors sent by ChatGPT, Perplexity, Gemini and Claude, and which AI crawlers read your pages.</td><td>Focused on identifying people for outreach.</td></tr>\n<tr><td>What it does not do</td><td>It will not hand you a stranger's name, email or LinkedIn profile.</td><td>That is what these tools are built to do.</td></tr></table></div>\n<p style=\"margin-top:14px;font-size:14px;color:var(--muted)\">If your goal is a contact list of strangers with job titles and emails, a data-broker tool is built for that. If you want to know who is interested, act on it quickly, and stay on the right side of privacy law, that is what Who's There is for. Competitor details come from their own published pages.</p>\n</div></section>\n\n<section id=\"pricing\" style=\"padding-top:0\"><div class=\"wrap\">\n<div class=\"kick\">Pricing</div><h2>Simple monthly plans.</h2>\n<style>.pg{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:38px}</style>\n<div class=\"pg\"><div class=\"card\"><h3>Starter</h3><p style=\"font-size:2rem;font-weight:800;color:var(--ink);margin:6px 0\">$99<span style=\"font-size:1rem;font-weight:600;color:var(--muted)\">/mo</span></p><p>1 website. Company recognition, hot-visitor alerts, AI-assistant and AI-crawler reports, weekly report, private phone-friendly dashboard.</p><p style=\"margin-top:16px\"><a class=\"btn p\" href=\"/whosthere/signup\">Get started</a></p></div><div class=\"card\"><h3>Growth</h3><p style=\"font-size:2rem;font-weight:800;color:var(--ink);margin:6px 0\">$199<span style=\"font-size:1rem;font-weight:600;color:var(--muted)\">/mo</span></p><p>Up to 3 websites. Everything in Starter, plus sending hot visitors to your CRM (Zapier, HubSpot and more) and CSV and JSON exports.</p><p style=\"margin-top:16px\"><a class=\"btn p\" href=\"/whosthere/signup\">Get started</a></p></div><div class=\"card\"><h3>Pro</h3><p style=\"font-size:2rem;font-weight:800;color:var(--ink);margin:6px 0\">$399<span style=\"font-size:1rem;font-weight:600;color:var(--muted)\">/mo</span></p><p>Up to 10 websites, each with its own private dashboard. Everything in Growth, plus setup help on every site.</p><p style=\"margin-top:16px\"><a class=\"btn p\" href=\"/whosthere/signup\">Get started</a></p></div><div class=\"card\"><h3>Agency</h3><p style=\"font-size:2rem;font-weight:800;color:var(--ink);margin:6px 0\">$999<span style=\"font-size:1rem;font-weight:600;color:var(--muted)\">/mo</span></p><p>Up to 50 websites for agencies and multi-location owners. We set up and monitor every site for you.</p><p style=\"margin-top:16px\"><a class=\"btn p\" href=\"/whosthere/signup\">Get started</a></p></div><div class=\"card\"><h3>Custom</h3><p style=\"font-size:2rem;font-weight:800;color:var(--ink);margin:6px 0\">Custom<span style=\"font-size:1rem;font-weight:600;color:var(--muted)\"></span></p><p>Franchise systems and large networks. Volume pricing and a plan built around your sites.</p><p style=\"margin-top:16px\"><a class=\"btn g\" href=\"#access\">Talk to us</a></p></div></div>\n<p style=\"margin-top:18px;font-size:14px;color:var(--muted)\">One-time setup is $497 per tool. Prices are for payment by wire; paying by card adds a 5% convenience fee. Already an AIrecommend.ai client? Who's There is available as an add-on to your programs, and bundling tools saves 10% to 40% on the monthly fee.</p>\n</div></section>\n\n<section id=\"honest\" style=\"padding-top:0\"><div class=\"wrap\">\n<div class=\"kick\">Straight talk</div><h2>What it can name, and what it can't.</h2>\n<p class=\"lead\">Most tools in this category oversell. Here is the real mechanism.</p>\n<div class=\"split\">\n<div class=\"co\"><h3>It can</h3><ul><li>Name the business behind a visit from an office or corporate network</li><li>Show city and region for every visit</li><li>Show the full page-by-page path and time on each page</li><li>Attach a name and email when a visitor submits a form</li></ul></div>\n<div class=\"co no\"><h3>It can't</h3><ul><li>Name a person browsing from home or a phone unless they identify themselves</li><li>Tell you who someone is from an IP address alone</li><li>Promise a match rate. It depends on who actually visits you</li></ul></div>\n</div></div></section>\n\n<section style=\"padding-top:0\"><div class=\"wrap\">\n<div class=\"kick\">The dashboard</div><h2>Open it on your phone. Know who to call.</h2>\n<div class=\"dash\">\n<div class=\"kp\"><div><b>1,284</b><small>Visitors</small></div><div><b>46</b><small>Companies</small></div><div><b>9</b><small>Hot visitors</small></div><div><b>3:12</b><small>Avg time</small></div></div>\n<div class=\"scroll\"><table><tr><th>Company</th><th>Views</th><th>Key pages</th><th>Where</th><th>Last seen</th></tr>\n<tr><td>Northwind Logistics</td><td>14</td><td>3</td><td>Tampa, FL</td><td>2 min ago</td></tr>\n<tr><td>Summit Dental Group</td><td>9</td><td>2</td><td>Provo, UT</td><td>38 min ago</td></tr>\n<tr><td>Harbor Capital Partners</td><td>7</td><td>2</td><td>Dallas, TX</td><td>1 hr ago</td></tr>\n<tr><td>Pine Ridge Realty</td><td>5</td><td>1</td><td>Scottsdale, AZ</td><td>3 hr ago</td></tr></table></div>\n<div class=\"sample\">Sample data for illustration. Company names are fictional.</div>\n</div></div></section>\n\n<section id=\"faq\" style=\"padding-top:0\"><div class=\"wrap\">\n<div class=\"kick\">Questions</div><h2>Before you ask.</h2>\n<details><summary>Is this legal and private?</summary><p>It is built to be consent-aware: it honors Global Privacy Control and Do Not Track, shows a consent banner by default (no ID or company name until a visitor accepts), links to a plain-language privacy page, and stores a salted hash instead of the raw IP address. People are only named when they submit a form themselves. You should still have a privacy notice on your site, and for legal advice on your situation, talk to your own attorney. We are not a law firm.</p></details>\n<details><summary>Will it slow my site?</summary><p>No. It is a tiny script that loads asynchronously and sends small beacons in the background.</p></details>\n<details><summary>Who is it for?</summary><p>Business owners who want to know who is looking, agencies that run many client sites, and sales teams that want to call the right company at the right moment.</p></details>\n<details><summary>What does it cost?</summary><p>Plans are $99, $199, $399 or $999 a month depending on how many websites you need, with custom pricing for larger networks, plus a one-time $497 setup. If you already use AIrecommend.ai programs, it can be added to your account, and bundling saves 10% to 40% on the monthly fee. See the pricing section above.</p></details>\n</div></section>\n\n<section id=\"access\" style=\"padding-top:0\"><div class=\"wrap\"><div class=\"cta-box\">\n<h2>Find out who's there.</h2>\n<p>Request early access. We'll set up your site and show you what your own traffic looks like.</p>\n<form id=\"f\"><input name=\"name\" placeholder=\"Your name\" required autocomplete=\"name\"><input name=\"email\" type=\"email\" placeholder=\"Email\" required autocomplete=\"email\"><input name=\"website\" placeholder=\"Your website (optional)\" autocomplete=\"url\"><textarea name=\"message\" rows=\"2\" placeholder=\"Anything we should know? (optional)\"></textarea><button class=\"btn w\" type=\"submit\">Request early access</button></form>\n<div id=\"ok\">Thank you. We'll be in touch shortly.</div>\n</div></div></section>\n\n<footer><div class=\"wrap\"><a class=\"mark\" href=\"https://airecommend.ai\"><b>AI</b>recommend<i>.ai</i></a><span>Who's There \u00b7 Powered by AIrecommend.ai \u00b7 <a href=\"/whosthere/privacy\" style=\"color:inherit\">Privacy &amp; cookies</a></span></div></footer>\n\n<script>\n(function(){\nvar data=[[\"Northwind Logistics\",\"Viewed /pricing\",\"Tampa, FL\",\"hot\",\"Hot\"],[\"Summit Dental Group\",\"Viewed /contact\",\"Provo, UT\",\"hot\",\"Hot\"],[\"Harbor Capital Partners\",\"Read 4 pages\",\"Dallas, TX\",\"\",\"Returning\"],[\"Pine Ridge Realty\",\"Viewed /services\",\"Scottsdale, AZ\",\"new\",\"New\"],[\"Bluepoint Manufacturing\",\"Viewed /book\",\"Columbus, OH\",\"hot\",\"Hot\"],[\"Cedar & Oak Law\",\"Read 3 pages\",\"Atlanta, GA\",\"new\",\"New\"],[\"Redwood Health Network\",\"Viewed /quote\",\"Denver, CO\",\"hot\",\"Hot\"],[\"Lakeshore Insurance\",\"Read 2 pages\",\"Milwaukee, WI\",\"\",\"Returning\"]];\nvar el=document.getElementById(\"feed\"),i=0;\nfunction add(){var d=data[i%data.length];i++;var r=document.createElement(\"div\");r.className=\"row\";\nr.innerHTML='<div class=\"av\">'+d[0][0]+'</div><div><b>'+d[0]+'</b><small>'+d[1]+' \u00b7 '+d[2]+'</small></div><span class=\"tag '+d[3]+'\">'+d[4]+'</span>';\nel.insertBefore(r,el.firstChild);while(el.children.length>5)el.removeChild(el.lastChild)}\nfor(var k=0;k<4;k++)add();\nif(!matchMedia(\"(prefers-reduced-motion: reduce)\").matches)setInterval(add,2600);\nvar f=document.getElementById(\"f\");\nf.addEventListener(\"submit\",function(e){e.preventDefault();var b=f.querySelector(\"button\");b.disabled=true;b.textContent=\"Sending\u2026\";\nvar o={};new FormData(f).forEach(function(v,k){o[k]=v});\nfetch(location.pathname.replace(/\\/$/,\"\")+\"/api/lead\",{method:\"POST\",headers:{\"content-type\":\"application/json\"},body:JSON.stringify(o)}).then(function(r){if(!r.ok)throw 0;f.style.display=\"none\";document.getElementById(\"ok\").style.display=\"block\"}).catch(function(){b.disabled=false;b.textContent=\"Something went wrong. Try again\"})});\n})();\n</script>\n</body>\n</html>\n";
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+
 // Known Visitor — first-party, consent-aware visitor identification. Multi-client.
 // Routes:
 //   GET  /v.js?s=SITE_KEY        tracking snippet
@@ -21,9 +2310,11 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS alerts (site TEXT, vid TEXT, day TEXT, PRIMARY KEY (site, vid, day))`,
   `CREATE TABLE IF NOT EXISTS requests (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, kind TEXT, site TEXT, email TEXT, details TEXT, ip_hash TEXT)`,
   `CREATE TABLE IF NOT EXISTS crm (site TEXT, vid TEXT, status TEXT, notes TEXT, follow_up TEXT, owner TEXT, updated TEXT, PRIMARY KEY (site, vid))`,
-  `CREATE INDEX IF NOT EXISTS ix_ev_vid ON events (site, vid, ts)`
+  `CREATE INDEX IF NOT EXISTS ix_ev_vid ON events (site, vid, ts)`,
+  `CREATE TABLE IF NOT EXISTS reps (slug TEXT PRIMARY KEY, name TEXT, first TEXT, phone TEXT, email TEXT, active INTEGER DEFAULT 1)`,
+  `CREATE TABLE IF NOT EXISTS rephits (slug TEXT, day TEXT, src TEXT, n INTEGER, PRIMARY KEY (slug, day, src))`
 ];
-async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN owner_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN report_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN crm_url TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN hubspot_token TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
+async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN owner_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN report_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN crm_url TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN hubspot_token TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN ref TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE leads ADD COLUMN ref TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE leads ADD COLUMN phone TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
 
 const json = (o, status = 200, h = {}) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...h } });
 const s = (v, n) => v == null ? null : String(v).slice(0, n);
@@ -361,12 +2652,12 @@ function manifest(request, base, site) {
 // ---------------------------------------------------------------- signup, install, requests
 const PAGE_CSS = `*{box-sizing:border-box}body{margin:0;background:#fff;color:#12151c;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}main{max-width:720px;margin:0 auto;padding:28px 18px 60px}h1{font-size:2rem;letter-spacing:-.02em;margin:.2em 0}h2{font-size:1.15rem;margin:1.6em 0 .4em}p,li{color:#3a4152}.k{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#2f5bea;font-weight:700}a{color:#2f5bea}input,select,textarea,button{font:inherit;width:100%;padding:13px;border-radius:10px;border:1px solid #cfd4df;margin:6px 0}button{background:#2f5bea;color:#fff;border:0;font-weight:700;cursor:pointer}code{display:block;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:10px;padding:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;font-size:13px;margin:8px 0}.c{background:#f7f8fb;border:1px solid #e6e8ee;border-radius:12px;padding:14px 18px;margin:14px 0}.ok{background:#eefaf3;border-color:#bfe6cf}`;
 const shell = (title, inner) => new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} | Who's There</title><style>${PAGE_CSS}</style></head><body><main><div class="k">Who's There · AIrecommend.ai</div>${inner}</main></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
-function signupPage(base) {
+function signupPage(base, ref) {
   return shell("Get started", `<h1>Get your install code</h1><p>Takes about two minutes. You get a private dashboard and one line of code to put on your website. A consent banner is included, so visitors choose before anything is stored.</p>
 <form id="f"><input name="name" placeholder="Business name" required><input name="domain" placeholder="Your website (example.com)" required><input name="email" type="email" placeholder="Your email" required><button>Create my dashboard</button></form><div id="out"></div>
 <p style="font-size:14px;color:#6b7280">By continuing you agree to use this only on a website you own or manage, and to keep the consent banner on. Plans and pricing: <a href="${esc(base)}/#pricing">see pricing</a>.</p>
 <script>var f=document.getElementById("f"),o=document.getElementById("out");function line(t,c){var d=document.createElement(c?"code":"p");d.textContent=t;o.appendChild(d)}
-f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector("button");b.disabled=true;b.textContent="Creating…";fetch("${esc(base)}/api/signup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:f.name.value,domain:f.domain.value,email:f.email.value})}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){o.textContent="";if(!x.ok){line(x.j.error||"Something went wrong. Please try again.");b.disabled=false;b.textContent="Create my dashboard";return}
+f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector("button");b.disabled=true;b.textContent="Creating…";fetch("${esc(base)}/api/signup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:f.name.value,domain:f.domain.value,email:f.email.value,ref:${JSON.stringify(validRef(ref))}})}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){o.textContent="";if(!x.ok){line(x.j.error||"Something went wrong. Please try again.");b.disabled=false;b.textContent="Create my dashboard";return}
 line("You're set up. Save this page: the dashboard link is private.");line("1. Put this in your website's head section:");line(x.j.snippet,1);var a=document.createElement("p");a.innerHTML='2. <a></a> &nbsp;3. <a class="g"></a>';var l=a.querySelectorAll("a");l[0].href=x.j.install;l[0].textContent="Step-by-step install guide (WordPress, Shopify, Wix and more)";l[1].href=x.j.dashboard;l[1].textContent="Open your private dashboard";o.appendChild(a);f.style.display="none"}).catch(function(){o.textContent="Network error. Please try again.";b.disabled=false;b.textContent="Create my dashboard"})});</script>`);
 }
 function installPage(base, siteKey) {
@@ -394,9 +2685,9 @@ async function signup(request, env) {
   if (mine >= 3 || all >= 40) return json({ error: "Too many sign-ups right now. Please try again tomorrow or contact us." }, 429);
   if (await env.DB.prepare(`SELECT 1 FROM sites WHERE domain=?`).bind(dom).first()) return json({ error: "That website is already set up. Contact us if you need access to it." }, 409);
   const r = await createSite(env, name, dom, null);
-  await env.DB.batch([env.DB.prepare(`UPDATE sites SET owner_email=?, report_email=? WHERE site=?`).bind(email, email, r.site), env.DB.prepare(`INSERT INTO requests (ts,kind,site,email,details,ip_hash) VALUES (?,?,?,?,?,?)`).bind(new Date().toISOString(), "signup", r.site, email, name + " / " + dom, ih)]);
+  await env.DB.batch([env.DB.prepare(`UPDATE sites SET owner_email=?, report_email=?, ref=? WHERE site=?`).bind(email, email, validRef(String(b.ref || "")) || null, r.site), env.DB.prepare(`INSERT INTO requests (ts,kind,site,email,details,ip_hash) VALUES (?,?,?,?,?,?)`).bind(new Date().toISOString(), "signup", r.site, email, name + " / " + dom, ih)]);
   SITES = null;
-  const owner = await env.DB.prepare(`SELECT * FROM sites WHERE site='kv_i8uqzb5daf3u'`).first(); if (owner) await notify(env, owner, `New Who's There signup: ${name} (${dom}) ${email}`, false);
+  const owner = await env.DB.prepare(`SELECT * FROM sites WHERE site='kv_i8uqzb5daf3u'`).first(); if (owner) await notify(env, owner, `New Who's There signup: ${name} (${dom}) ${email}${validRef(String(b.ref || "")) ? " via rep " + validRef(String(b.ref || "")) : ""}`, false);
   return json({ ok: true, snippet: `<script async src="${ORIGIN}/v.js?s=${r.site}"></script>`, dashboard: `${ORIGIN}/dash?s=${r.site}&t=${r.token}`, install: `${ORIGIN}/install?s=${r.site}` });
 }
 async function privacyRequest(request, env) {
@@ -469,11 +2760,58 @@ async function lead(request, env) {
   if (!name || !email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: "name and valid email required" }, 400);
   await ensure(env.DB);
   const ip = request.headers.get("cf-connecting-ip") || "";
-  await env.DB.prepare(`INSERT INTO leads (ts,name,email,website,message,ip_hash) VALUES (?,?,?,?,?,?)`).bind(new Date().toISOString(), name, email, s(b.website, 200), s(b.message, 1000), ip ? await sha(ip + "|lead") : null).run();
+  if (b.company) return json({ ok: true });
+  const ref = validRef(String(b.ref || "")), ph = s(b.phone, 40) || null;
+  await env.DB.prepare(`INSERT INTO leads (ts,name,email,website,message,ip_hash,ref,phone) VALUES (?,?,?,?,?,?,?,?)`).bind(new Date().toISOString(), name, email, s(b.website, 200), s(b.message, 1000), ip ? await sha(ip + "|lead") : null, ref || null, ph).run();
+  try { const owner = await env.DB.prepare(`SELECT * FROM sites WHERE site='kv_i8uqzb5daf3u'`).first(); if (owner) await notify(env, owner, `New Who's There lead${ref ? " for rep " + ref : ""}: ${name} <${email}> ${ph || ""} ${s(b.website, 100) || ""}`, true); } catch { }
   if (env.LEAD_WEBHOOK) { try { await fetch(env.LEAD_WEBHOOK, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: `Who's There early-access request: ${name} <${email}> ${s(b.website, 200) || ""} ${s(b.message, 300) || ""}` }) }); } catch { } }
   return json({ ok: true });
 }
 
+
+// ---------------------------------------------------------------- rep landing pages + QR codes
+const telHref = p => { const d = String(p || "").replace(/\D/g, ""); return d.length === 10 ? "+1" + d : d.length === 11 && d[0] === "1" ? "+" + d : d ? "+" + d : ""; };
+function qrSvg(text, color = "#2f5bea", px = 6) {
+  const q = qrcode(0, "M"); q.addData(text); q.make();
+  const n = q.getModuleCount(), m = 2, size = (n + m * 2) * px; let d = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${(c + m) * px} ${(r + m) * px}h${px}v${px}h-${px}z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" role="img" aria-label="QR code" style="width:100%;height:auto;display:block"><rect width="${size}" height="${size}" fill="#fff"/><path d="${d}" fill="${color}"/></svg>`;
+}
+const repUrl = slug => `${ORIGIN}/r/${slug}`;
+const validRef = v => /^[a-z0-9]{2,30}$/.test(v || "") ? v : "";
+async function repPage(request, env, base, slug, ctx) {
+  await ensure(env.DB);
+  const rep = await env.DB.prepare(`SELECT * FROM reps WHERE slug=? AND active=1`).bind(slug).first();
+  if (!rep) return new Response("Not found", { status: 404 });
+  const u = new URL(request.url), src = u.searchParams.get("src") === "qr" ? "qr" : "link", day = new Date().toISOString().slice(0, 10);
+  ctx.waitUntil(env.DB.prepare(`INSERT INTO rephits (slug,day,src,n) VALUES (?,?,?,1) ON CONFLICT(slug,day,src) DO UPDATE SET n=n+1`).bind(slug, day, src).run());
+  const f = esc(rep.first || rep.name), tel = telHref(rep.phone);
+  const btns = `<a class="b p" href="${base}/signup?ref=${esc(slug)}">Start for $99/mo →</a>${tel ? `<a class="b g" href="tel:${esc(tel)}">Call ${f}</a><a class="b w" href="sms:${esc(tel)}">Text ${f}</a>` : ""}${rep.email ? `<a class="b w" href="mailto:${esc(rep.email)}">Email ${f}</a>` : ""}`;
+  const css = `<style>main{max-width:760px}h1 em{font-style:normal;color:#7c3aed}.sub{font-size:1.1rem}.b{display:inline-block;border-radius:12px;padding:13px 20px;margin:5px 8px 5px 0;text-decoration:none;font-weight:700}.b.p{background:linear-gradient(135deg,#2f5bea,#7c3aed);color:#fff}.b.g{background:#0f9d58;color:#fff}.b.w{background:#fff;color:#2f5bea;border:1px solid #cfd4df}.list{list-style:none;padding:0;display:grid;gap:10px}.pl{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pl div{background:#f7f8fb;border:1px solid #e6e8ee;border-radius:12px;padding:12px 14px}.pl b{font-size:1.25rem;color:#12151c}.pl span{display:block;font-size:14px;color:#6b7280}.qr{max-width:200px;margin:12px 0;border:1px solid #e6e8ee;border-radius:14px;overflow:hidden}.hp{position:absolute;left:-9999px}.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#6b7280}.chk input{width:auto;margin-top:4px}</style>`;
+  const html = `${css}<div class="k" style="margin-top:6px">With ${esc(rep.name)}</div><h1>Someone just read your prices. <em>Do you know who they were?</em></h1>
+<p class="sub">Most people look at your website, think about it, and leave without calling. You never find out. <b style="color:#7c3aed">Who's There</b> tells you which customers stopped by, what they looked at, and pings your phone the moment someone checks your prices or contact page. ${f} can have it running for you in about two minutes.</p>
+<ul class="list"><li>📱 <b>A ping on your phone</b> when someone looks at pricing, contact or booking</li><li>🧑‍💼 <b>Who your customer is</b> behind the visit, when it can be found</li><li>🤖 <b>Which AI assistants</b> (ChatGPT, Perplexity, Claude) send people to you</li><li>🔒 <b>Honest and private</b>: visitors say yes or no first, and can delete their data any time</li></ul>
+<p>${btns}</p>
+<h2>Simple monthly plans</h2><div class="pl"><div><b>$99</b><span>Starter · 1 website</span></div><div><b>$199</b><span>Growth · up to 3 websites + CRM push</span></div><div><b>$399</b><span>Pro · up to 10 websites</span></div><div><b>$999</b><span>Agency · up to 50 websites</span></div></div><p style="font-size:14px;color:#6b7280">One-time $497 setup. Card payments add a 5% fee. Need more? Ask ${f} about Custom.</p>
+<h2>Want ${f} to walk you through it?</h2>
+<form id="lf"><input name="name" placeholder="Your name" required><input name="email" type="email" placeholder="Your email" required><input name="phone" type="tel" placeholder="Phone (optional)"><input name="website" placeholder="Your website (optional)"><input class="hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="chk"><input type="checkbox" name="ok" required><span>I agree that ${f} (AIrecommend.ai) may contact me about Who's There by email or phone. No spam. I can say stop any time.</span></label><button>Send</button><p id="lm" style="color:#0f9d58;font-weight:700"></p></form>
+<h2>Share this page</h2><p>Scan to open this page on a phone.</p><div class="qr">${qrSvg(repUrl(slug) + "?src=qr")}</div><p><a href="${base}/r/${esc(slug)}/qr">Printable QR poster</a></p>
+<script>var lf=document.getElementById("lf");lf.addEventListener("submit",function(e){e.preventDefault();if(lf.company.value)return;var b=lf.querySelector("button");b.disabled=true;fetch("${esc(base)}/api/lead",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:lf.name.value,email:lf.email.value,phone:lf.phone.value,website:lf.website.value,message:"Asked ${esc(rep.first || rep.name)} to reach out",ref:${JSON.stringify(slug)}})}).then(function(r){return r.json()}).then(function(j){document.getElementById("lm").textContent=j.ok?"Thanks! ${f} will reach out soon.":(j.error||"Please try again.");if(j.ok)lf.reset();b.disabled=false}).catch(function(){document.getElementById("lm").textContent="Please try again.";b.disabled=false})});</script>`;
+  return shell(`${rep.name}: see who visits your website`, html);
+}
+async function repPoster(env, slug) {
+  await ensure(env.DB);
+  const rep = await env.DB.prepare(`SELECT * FROM reps WHERE slug=? AND active=1`).bind(slug).first();
+  if (!rep) return new Response("Not found", { status: 404 });
+  const url = repUrl(slug) + "?src=qr";
+  return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR poster · ${esc(rep.name)}</title><style>*{box-sizing:border-box}body{margin:0;font:18px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#12151c;text-align:center;padding:28px 18px}h1{font-size:2.1rem;letter-spacing:-.02em;line-height:1.12;margin:.3em 0}.k{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#2f5bea;font-weight:700}.qr{max-width:360px;margin:18px auto;border:6px solid #2f5bea;border-radius:22px;overflow:hidden}.n{font-size:1.4rem;font-weight:800}.s{color:#6b7280;font-size:15px;word-break:break-all}.pr{margin-top:20px}button{font:inherit;padding:12px 22px;border-radius:10px;border:0;background:#2f5bea;color:#fff;font-weight:700}@media print{.pr{display:none}}</style></head><body><div class="k">AIrecommend.ai · Who's There</div><h1>Who's looking at<br>your website?</h1><p>Scan to find out, and get a ping on your phone when a customer checks your prices.</p><div class="qr">${qrSvg(url, "#2f5bea", 8)}</div><div class="n">${esc(rep.name)}</div><div class="s">${esc(repUrl(slug))}</div><div class="pr"><button onclick="window.print()">Print this poster</button></div></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+async function repsAdmin(request, env, base) {
+  const u = new URL(request.url), key = u.searchParams.get("key") || ""; if (!(await isAdmin(env, key))) return new Response("Not found", { status: 404 });
+  await ensure(env.DB);
+  const rows = (await env.DB.prepare(`SELECT r.slug, r.name, COALESCE((SELECT SUM(n) FROM rephits h WHERE h.slug=r.slug AND h.src='qr'),0) qr, COALESCE((SELECT SUM(n) FROM rephits h WHERE h.slug=r.slug AND h.src='link'),0) link, (SELECT COUNT(*) FROM leads l WHERE l.ref=r.slug) leads, (SELECT COUNT(*) FROM sites x WHERE x.ref=r.slug) sites FROM reps r WHERE r.active=1 ORDER BY r.name`).all()).results || [];
+  return shell("Rep pages", `<style>.ld{display:block;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:14px;padding:14px 16px;margin:10px 0}.mu{color:#6b7280;font-size:14px}</style><h1>Rep pages</h1><p class="mu">Each rep has a landing page and a printable QR poster. Counts show page opens (from QR scans and links), leads and signups.</p>${rows.map(r => `<div class="ld"><b>${esc(r.name)}</b><br><a href="${base}/r/${esc(r.slug)}">Page</a> · <a href="${base}/r/${esc(r.slug)}/qr">QR poster</a><br><span class="mu">${r.qr} QR opens · ${r.link} link opens · ${r.leads} leads · ${r.sites} signups</span></div>`).join("")}`);
+}
 
 // ---------------------------------------------------------------- CRM: leads, score, status, notes, follow-ups
 const KEY_SQL = ["pric", "contact", "book", "demo", "quote", "schedule", "checkout", "buy", "apply", "get-started", "signup", "sign-up", "consult", "franchise"].map(k => `path LIKE '%${k}%'`).join(" OR ");
@@ -623,11 +2961,13 @@ export default {
       if (p === "/sw.js") return new Response("self.addEventListener('install',function(){self.skipWaiting()});self.addEventListener('fetch',function(){});", { headers: { "content-type": "application/javascript", "cache-control": "no-store" } });
       if (p === "/live") return await live(request, env);
       if (p === "/digest") { const site = await authSite(env, u); if (!site) return new Response("Not found", { status: 404 }); const txt = u.searchParams.get("send") === "1" ? await digestRun(env, site) : await digestText(env, site); return new Response(txt, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } }); }
-      if (p === "/signup" && request.method === "GET") return signupPage(base);
+      if (p === "/signup" && request.method === "GET") return signupPage(base, u.searchParams.get("ref"));
       if (p === "/api/signup" && request.method === "POST") return await signup(request, env);
       if (p === "/install") return installPage(base, u.searchParams.get("s"));
       if (p === "/api/request" && request.method === "POST") return await privacyRequest(request, env);
       if (p === "/health") { const h = await healthCheck(env); return json({ service: "known-visitor", ...h }, h.ok ? 200 : 503); }
+      if (p === "/reps") return await repsAdmin(request, env, base);
+      { const m = p.match(/^\/r\/([a-z0-9]{2,30})(\/qr)?$/); if (m && request.method === "GET") return m[2] ? await repPoster(env, m[1]) : await repPage(request, env, base, m[1], ctx); }
       if (p === "/crm") return await crmPage(request, env, base);
       if (p === "/crm/lead") return await crmLead(request, env, base);
       if (p === "/api/crm/update" && request.method === "POST") return await crmUpdate(request, env);
