@@ -7,9 +7,7 @@ routes = [
   { pattern = "airecommend.ai/whosthere*", zone_name = "airecommend.ai" },
   { pattern = "www.airecommend.ai/whosthere*", zone_name = "airecommend.ai" },
   { pattern = "airecommend.ai/*", zone_name = "airecommend.ai" },
-  { pattern = "www.airecommend.ai/*", zone_name = "airecommend.ai" },
-  { pattern = "scotttischler.com/*", zone_name = "scotttischler.com" },
-  { pattern = "www.scotttischler.com/*", zone_name = "scotttischler.com" }
+  { pattern = "www.airecommend.ai/*", zone_name = "airecommend.ai" }
 ]
 # Edge install (added only after the pass-through was tested): airecommend.ai/* and scotttischler.com/* routes
 
