@@ -19,7 +19,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT)`,
   `CREATE TABLE IF NOT EXISTS alerts (site TEXT, vid TEXT, day TEXT, PRIMARY KEY (site, vid, day))`
 ];
-async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); globalThis.__kv_schema = 1; } }
+async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
 
 const json = (o, status = 200, h = {}) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...h } });
 const s = (v, n) => v == null ? null : String(v).slice(0, n);
@@ -45,7 +45,7 @@ var optOut=n.globalPrivacyControl===true||n.doNotTrack==="1"||ls("kv_c")==="0";
 var vid=null,sid=null,t0=Date.now(),maxScroll=0,left=false;
 function allowed(){return !optOut&&(!req||ls("kv_c")==="1")}
 function ids(){if(!vid){vid=ls("kv_v");if(!vid){vid=rid();ls("kv_v",vid)}}if(!sid){sid=ss("kv_s");if(!sid){sid=rid();ss("kv_s",sid)}}}
-function base(type,extra){var p=new URLSearchParams(location.search),o={type:type,vid:vid,sid:sid,path:location.pathname,title:d.title,ref:d.referrer,
+function base(type,extra){var p=new URLSearchParams(location.search),o={type:type,vid:vid,sid:sid,path:location.pathname,title:d.title,ref:d.referrer,lang:n.language,tz:(function(){try{return Intl.DateTimeFormat().resolvedOptions().timeZone}catch(e){return null}})(),scr:w.screen?w.screen.width+"x"+w.screen.height:null,click:p.get("gclid")?"google":p.get("fbclid")?"meta":p.get("msclkid")?"bing":null,
  utm_source:p.get("utm_source"),utm_medium:p.get("utm_medium"),utm_campaign:p.get("utm_campaign")};for(var k in extra)o[k]=extra[k];return o}
 function undecided(){return !optOut&&req&&ls("kv_c")===null}
 function send(type,extra){if(undecided()){try{var a=new URLSearchParams(location.search);fetch(E+"/api/collect",{method:"POST",keepalive:true,headers:{"content-type":"text/plain"},body:JSON.stringify({s:S,events:[{type:type,anon:1,path:location.pathname,ref:d.referrer,utm_source:a.get("utm_source"),utm_medium:a.get("utm_medium"),utm_campaign:a.get("utm_campaign")}]})})}catch(e){}return}
@@ -58,6 +58,13 @@ d.addEventListener("visibilitychange",function(){if(d.visibilityState==="hidden"
 w.addEventListener("pagehide",leave);
 ["pushState","replaceState"].forEach(function(f){var o=history[f];history[f]=function(){leave();var r=o.apply(this,arguments);setTimeout(view,0);return r}});
 w.addEventListener("popstate",function(){leave();setTimeout(view,0)});
+// Consented-only behavior: clicks on links/buttons, form start (never field values).
+d.addEventListener("click",function(ev){try{if(!allowed())return;var a=ev.target.closest&&ev.target.closest("a,button,[role=button]");if(!a)return;
+ var h=a.getAttribute("href")||"",k="cta",tx=(a.innerText||a.value||a.getAttribute("aria-label")||"").trim().slice(0,60);
+ if(/^tel:/i.test(h))k="phone";else if(/^mailto:/i.test(h))k="email";else if(/[.](pdf|docx?|xlsx?|zip|pptx?)([?]|$)/i.test(h))k="download";
+ else if(/^https?:/i.test(h)){try{if(new URL(h).hostname!==location.hostname)k="outbound"}catch(e){}}
+ send("click",{detail:{kind:k,text:tx,href:h.slice(0,160)}})}catch(e){}},true);
+var fs={};d.addEventListener("focusin",function(ev){try{var f=ev.target.form;if(!f||!allowed())return;var id=f.id||f.action||"form";if(fs[id])return;fs[id]=1;send("form_start",{detail:{form:String(id).slice(0,80)}})}catch(e){}},true);
 // Identification ONLY when the person submits a form themselves (their action = consent to be contacted).
 d.addEventListener("submit",function(ev){try{var f=ev.target,em=f.querySelector('input[type=email],input[name*=email i]'),
  nm=f.querySelector('input[name*=name i],input[name*=first i]'),ph=f.querySelector('input[type=tel],input[name*=phone i]');
@@ -103,9 +110,9 @@ async function collect(request, env, ctx) {
         VALUES (?,?,?,?,?,?,?,?,?,?,?,0)`).bind(site.site, now, "view", s(e.path, 300), s(e.ref, 400), s(e.utm_source, 100), s(e.utm_medium, 100), s(e.utm_campaign, 100), cf.country || null, "anon", device(ua)));
       continue;
     }
-    stmts.push(env.DB.prepare(`INSERT INTO events (site,ts,type,vid,sid,path,title,referrer,utm_source,utm_medium,utm_campaign,country,region,city,asn,org,org_kind,ip_hash,ua,device,is_bot,seconds,scroll)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(site.site, now, type, s(e.vid, 40), s(e.sid, 40), s(e.path, 300), s(e.title, 200), s(e.ref, 400), s(e.utm_source, 100), s(e.utm_medium, 100), s(e.utm_campaign, 100),
-      cf.country || null, cf.region || null, cf.city || null, cf.asn ? String(cf.asn) : null, org, kind, ip_hash, ua.slice(0, 250), device(ua), bot, num(e.seconds), num(e.scroll)));
+    stmts.push(env.DB.prepare(`INSERT INTO events (site,ts,type,vid,sid,path,title,referrer,utm_source,utm_medium,utm_campaign,country,region,city,asn,org,org_kind,ip_hash,ua,device,is_bot,seconds,scroll,detail,lang)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(site.site, now, type, s(e.vid, 40), s(e.sid, 40), s(e.path, 300), s(e.title, 200), s(e.ref, 400), s(e.utm_source, 100), s(e.utm_medium, 100), s(e.utm_campaign, 100),
+      cf.country || null, cf.region || null, cf.city || null, cf.asn ? String(cf.asn) : null, org, kind, ip_hash, ua.slice(0, 250), device(ua), bot, num(e.seconds), num(e.scroll), type === "identify" ? null : (e.detail || e.click || e.tz || e.scr) ? s(JSON.stringify({ ...(e.detail || {}), ...(e.click ? { ad: e.click } : {}), tz: s(e.tz, 60), scr: s(e.scr, 12) }), 400) : null, s(e.lang, 12)));
     if (type === "identify" && e.vid && e.detail && !bot) {
       const d = e.detail;
       stmts.push(env.DB.prepare(`INSERT INTO people (site,vid,name,email,phone,source,first_seen,updated) VALUES (?,?,?,?,?,?,?,?)
@@ -148,6 +155,11 @@ async function dash(request, env) {
   const people = await env.DB.prepare(`SELECT p.*, (SELECT COUNT(*) FROM events e WHERE e.site=p.site AND e.vid=p.vid AND e.type='view') views FROM people p WHERE p.site=? AND p.updated>=? ORDER BY p.updated DESC LIMIT 100`).bind(site.site, since).all().then(r => r.results || []);
   const pages = await q(`SELECT path, COUNT(*) views, COUNT(DISTINCT vid) visitors FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 GROUP BY path ORDER BY views DESC LIMIT 15`);
   const sources = await q(`SELECT COALESCE(NULLIF(utm_source,''), CASE WHEN referrer IS NULL OR referrer='' THEN '(direct)' ELSE referrer END) src, COUNT(DISTINCT COALESCE(sid, 'a' || id)) sessions FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 GROUP BY src ORDER BY sessions DESC LIMIT 12`);
+  const ai = await q(`SELECT CASE WHEN referrer LIKE '%chatgpt.com%' OR referrer LIKE '%chat.openai.com%' THEN 'ChatGPT' WHEN referrer LIKE '%perplexity.ai%' THEN 'Perplexity' WHEN referrer LIKE '%gemini.google.com%' THEN 'Gemini' WHEN referrer LIKE '%claude.ai%' THEN 'Claude' WHEN referrer LIKE '%copilot.microsoft.com%' THEN 'Copilot' WHEN referrer LIKE '%you.com%' THEN 'You.com' WHEN referrer LIKE '%grok.com%' THEN 'Grok' WHEN lower(utm_source) IN ('chatgpt.com','chatgpt','perplexity','gemini','claude') THEN utm_source END src, COUNT(*) views, MAX(ts) last FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 GROUP BY src HAVING src IS NOT NULL ORDER BY views DESC`);
+  const crawlers = await q(`SELECT org bot, COUNT(*) hits, COUNT(DISTINCT path) pages, MAX(ts) last FROM events WHERE site=? AND ts>=? AND org_kind='bot' GROUP BY org ORDER BY hits DESC LIMIT 15`);
+  const clicks = await q(`SELECT json_extract(detail,'$.kind') kind, json_extract(detail,'$.text') txt, COUNT(*) n FROM events WHERE site=? AND ts>=? AND type='click' AND is_bot=0 GROUP BY kind, txt ORDER BY n DESC LIMIT 15`);
+  const funnel = (await q(`SELECT SUM(type='form_start') starts, SUM(type='identify') ids, SUM(type='click' AND json_extract(detail,'$.kind') IN ('phone','email')) contacts FROM events WHERE site=? AND ts>=? AND is_bot=0`))[0] || {};
+  const countries = await q(`SELECT COALESCE(country,'?') c, COUNT(*) views FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 GROUP BY c ORDER BY views DESC LIMIT 8`);
   const recent = await q(`SELECT ts, vid, path, city, region, country, device, org, org_kind FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 ORDER BY id DESC LIMIT 30`);
   const tbl = (head, rows) => `<div class="tw"><table><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${head.length}" class="m">No data yet</td></tr>`}</table></div>`;
   const rng = [1, 7, 30, 90].map(d => `<a ${d === days ? 'class="on"' : ""} href="?s=${esc(site.site)}&t=${esc(tok)}&days=${d}">${d === 1 ? "24h" : d + "d"}</a>`).join("");
@@ -157,10 +169,15 @@ async function dash(request, env) {
 .tw{overflow-x:auto;background:#121a33;border:1px solid #22305a;border-radius:12px}table{border-collapse:collapse;width:100%}th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8392b5;text-align:left;padding:10px 12px;border-bottom:1px solid #22305a}td{padding:9px 12px;border-bottom:1px solid #1b2748;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}.m{color:#8392b5;text-align:center;padding:22px}.g{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:860px){.g{grid-template-columns:1fr}}.note{color:#8392b5;font-size:12px;margin-top:6px}</style></head><body>
 <h1>${esc(site.name)}</h1><p class="sub">Known Visitor · ${esc(site.domain || "")}</p><div class="r">${rng}</div>
 <div class="k"><div><b>${tot.views || 0}</b><small>All page views</small></div><div><b>${tot.visitors || 0}</b><small>Consented visitors</small></div><div><b>${tot.anon || 0}</b><small>Anonymous views</small></div><div><b>${tot.sessions || 0}</b><small>Sessions</small></div><div><b>${companies.length}</b><small>Companies</small></div><div><b>${people.length}</b><small>People</small></div><div><b>${Math.round(eng.s || 0)}s</b><small>Avg time</small></div></div>
-<h2>Companies visiting</h2>${tbl(["Company", "Visitors", "Views", "Pages", "Key pages", "Where", "Last seen"], companies.map(c => [c.org, c.visitors, c.views, c.pages, c.key_hits, [c.city, c.region].filter(Boolean).join(", "), (c.last || "").slice(0, 16).replace("T", " ")]))}
+<h2>Companies visiting</h2>${tbl(["Company", "Score", "Visitors", "Views", "Pages", "Key pages", "Where", "Last seen"], companies.map(c => [c.org, c.views + 5 * c.key_hits, c.visitors, c.views, c.pages, c.key_hits, [c.city, c.region].filter(Boolean).join(", "), (c.last || "").slice(0, 16).replace("T", " ")]))}
 <p class="note">Company = the organization that owns the visitor's network, shown only for visitors who accepted. Home and mobile visitors show only as location, never a name. "Anonymous views" are visits counted without consent: no ID, no company, no IP stored.</p>
 <h2>People who identified themselves</h2>${tbl(["Name", "Email", "Phone", "How", "Views", "When"], people.map(p => [p.name, p.email, p.phone, p.source, p.views, (p.updated || "").slice(0, 16).replace("T", " ")]))}
 <div class="g"><div><h2>Top pages</h2>${tbl(["Page", "Views", "Visitors"], pages.map(p => [p.path, p.views, p.visitors]))}</div><div><h2>Sources</h2>${tbl(["Source", "Sessions"], sources.map(x => [x.src, x.sessions]))}</div></div>
+<h2>AI assistants sending visitors</h2>${tbl(["Assistant", "Visits", "Last"], ai.map(a => [a.src, a.views, (a.last || "").slice(0, 16).replace("T", " ")]))}
+<p class="note">People who clicked a link inside ChatGPT, Perplexity, Gemini, Claude and similar. This is proof AI is recommending the site.</p>
+<h2>AI and search crawlers reading the site</h2>${tbl(["Crawler", "Hits", "Pages", "Last"], crawlers.map(c => [c.bot, c.hits, c.pages, (c.last || "").slice(0, 16).replace("T", " ")]))}
+<p class="note">Robots, not people. Seen at the edge, so they are counted even though they never run scripts.</p>
+<div class="g"><div><h2>What visitors click</h2>${tbl(["Type", "Button or link", "Clicks"], clicks.map(c => [c.kind, c.txt, c.n]))}</div><div><h2>Actions and countries</h2>${tbl(["Measure", "Count"], [["Started a form", funnel.starts || 0], ["Identified themselves", funnel.ids || 0], ["Tapped call or email", funnel.contacts || 0], ...countries.map(x => ["Views from " + x.c, x.views])])}</div></div>
 <h2>Recent visits</h2>${tbl(["Time (UTC)", "Visitor", "Page", "Who / where", "Device"], recent.map(v => [(v.ts || "").slice(0, 16).replace("T", " "), (v.vid || "").slice(0, 6), v.path, v.org_kind === "company" ? v.org : v.org_kind === "anon" ? "Anonymous (" + (v.country || "?") + ")" : [v.city, v.region, v.country].filter(Boolean).join(", "), v.device]))}
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
@@ -225,6 +242,30 @@ async function lead(request, env) {
   return json({ ok: true });
 }
 
+
+// ---------------------------------------------------------------- edge: install on a site with no code change
+const AI_BOT = /GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Perplexity-User|Google-Extended|Googlebot|bingbot|Applebot|Amazonbot|Bytespider|CCBot|meta-externalagent|DuckAssistBot|YouBot|cohere-ai/i;
+let SITES = null, SITES_AT = 0;
+async function siteFor(env, host) {
+  if (!SITES || Date.now() - SITES_AT > 60000) { await ensure(env.DB); SITES = ((await env.DB.prepare(`SELECT site,domain FROM sites WHERE domain IS NOT NULL AND domain!=''`).all()).results) || []; SITES_AT = Date.now(); }
+  const h = host.replace(/^www\./, ""); return SITES.find(x => x.domain === h) || null;
+}
+async function edge(request, env, ctx) {
+  const res = await fetch(request); // always serve the real site first; anything below fails open
+  try {
+    if (request.method !== "GET" || !(res.headers.get("content-type") || "").includes("text/html")) return res;
+    const u = new URL(request.url), site = await siteFor(env, u.hostname); if (!site) return res;
+    const ua = request.headers.get("user-agent") || "", m = ua.match(AI_BOT);
+    if (m) {
+      ctx.waitUntil(env.DB.prepare(`INSERT INTO events (site,ts,type,path,country,org,org_kind,ua,device,is_bot) VALUES (?,?,?,?,?,?,?,?,?,1)`)
+        .bind(site.site, new Date().toISOString(), "view", s(u.pathname, 300), (request.cf && request.cf.country) || null, m[0], "bot", ua.slice(0, 250), "bot").run().catch(() => { }));
+      return res;
+    }
+    if (BOT.test(ua)) return res;
+    return new HTMLRewriter().on("head", { element(el) { el.append(`<script async src="/whosthere/v.js?s=${site.site}"></script>`, { html: true }); } }).transform(res);
+  } catch { return res; }
+}
+
 const BASE = "/whosthere";
 export default {
   async scheduled(event, env, ctx) {
@@ -234,6 +275,8 @@ export default {
     const u = new URL(request.url);
     let p = u.pathname.replace(/\/+$/, "") || "/", base = "";
     if (p === BASE || p.startsWith(BASE + "/")) { base = BASE; p = p.slice(BASE.length) || "/"; }
+    // Any URL that is not /whosthere/* belongs to the host site: pass it through untouched (script is added to HTML pages only).
+    if (!base && !u.hostname.endsWith("workers.dev")) return env.DB ? edge(request, env, ctx) : fetch(request);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
     try {
       if (!env.DB) return json({ error: "no DB binding" }, 500);
