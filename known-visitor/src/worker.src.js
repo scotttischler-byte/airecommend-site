@@ -281,7 +281,7 @@ export default {
     try {
       if (!env.DB) return json({ error: "no DB binding" }, 500);
       if (p === "/" && request.method === "GET") return new Response(LANDING, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" } });
-      if (p === "/v.js") return new Response(snippet(u.searchParams.get("s") || "", u.origin + base), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=3600", ...corsHeaders() } });
+      if (p === "/v.js") return new Response(snippet(u.searchParams.get("s") || "", u.origin + base), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=300", ...corsHeaders() } });
       if (p === "/api/collect" && request.method === "POST") return await collect(request, env, ctx);
       if (p === "/api/lead" && request.method === "POST") return await lead(request, env);
       if (p === "/dash") return await dash(request, env);
