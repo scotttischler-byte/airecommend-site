@@ -17,9 +17,10 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS people (site TEXT, vid TEXT, name TEXT, email TEXT, phone TEXT, source TEXT, first_seen TEXT, updated TEXT, PRIMARY KEY (site, vid))`,
   `CREATE TABLE IF NOT EXISTS leads (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, name TEXT, email TEXT, website TEXT, message TEXT, ip_hash TEXT)`,
   `CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT)`,
-  `CREATE TABLE IF NOT EXISTS alerts (site TEXT, vid TEXT, day TEXT, PRIMARY KEY (site, vid, day))`
+  `CREATE TABLE IF NOT EXISTS alerts (site TEXT, vid TEXT, day TEXT, PRIMARY KEY (site, vid, day))`,
+  `CREATE TABLE IF NOT EXISTS requests (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, kind TEXT, site TEXT, email TEXT, details TEXT, ip_hash TEXT)`
 ];
-async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
+async function ensure(db) { if (!globalThis.__kv_schema) { await db.batch(SCHEMA.map(s => db.prepare(s))); try { await db.prepare(`ALTER TABLE events ADD COLUMN detail TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE events ADD COLUMN lang TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN owner_email TEXT`).run(); } catch { } try { await db.prepare(`ALTER TABLE sites ADD COLUMN report_email TEXT`).run(); } catch { } globalThis.__kv_schema = 1; } }
 
 const json = (o, status = 200, h = {}) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...h } });
 const s = (v, n) => v == null ? null : String(v).slice(0, n);
@@ -144,16 +145,24 @@ async function forget(request, env) {
   return json({ ok: true }, 200, corsHeaders());
 }
 
+const ORIGIN = "https://airecommend.ai/whosthere";
+async function setStatus(env, v) { try { await env.DB.prepare(`INSERT OR REPLACE INTO settings (k,v) VALUES ('last_alert_status',?)`).bind(v).run(); } catch { } }
+async function notify(env, site, text, high = true) {
+  const w = site.alert_webhook; if (!w) return;
+  try {
+    let rr;
+    if (/^https:\/\/ntfy\.sh\//.test(w)) rr = await fetch(w, { method: "POST", headers: { Title: "Whos There", Priority: high ? "high" : "default" }, body: text }); // free push, no account
+    else if (/^https:\/\/hooks\.slack\.com\//.test(w)) rr = await fetch(w, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+    else if (/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(w)) rr = await fetch(w, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ content: text.slice(0, 1900) }) });
+    else rr = await fetch(w, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, site: site.name, at: new Date().toISOString() }) });
+    await setStatus(env, rr.status + " " + new Date().toISOString());
+  } catch (e) { await setStatus(env, "err " + String(e).slice(0, 150)); }
+}
 async function alert(env, site, text, vid, day) {
   if (!site.alert_webhook) return;
   const r = await env.DB.prepare(`INSERT OR IGNORE INTO alerts (site,vid,day) VALUES (?,?,?)`).bind(site.site, vid, day).run();
   if (!r.meta || !r.meta.changes) return;
-  try {
-    if (/^https:\/\/ntfy\.sh\//.test(site.alert_webhook)) { // free push notification, no account needed
-      const rr = await fetch(site.alert_webhook, { method: "POST", headers: { Title: "Whos There", Priority: "high" }, body: text });
-      await env.DB.prepare(`INSERT OR REPLACE INTO settings (k,v) VALUES ('last_alert_status',?)`).bind(rr.status + " " + new Date().toISOString()).run();
-    } else await fetch(site.alert_webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, site: site.name, at: new Date().toISOString() }) });
-  } catch (e) { try { await env.DB.prepare(`INSERT OR REPLACE INTO settings (k,v) VALUES ('last_alert_status',?)`).bind("err " + String(e).slice(0, 150)).run(); } catch { } }
+  await notify(env, site, text, true);
 }
 
 // ---------------------------------------------------------------- dashboard
@@ -168,7 +177,7 @@ async function dash(request, env, csv) {
   const tot = (await q(`SELECT COUNT(*) views, COUNT(DISTINCT vid) visitors, COUNT(DISTINCT sid) sessions, SUM(CASE WHEN org_kind='anon' THEN 1 ELSE 0 END) anon FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0`))[0] || {};
   const eng = (await q(`SELECT AVG(seconds) s, AVG(scroll) sc FROM events WHERE site=? AND ts>=? AND type='leave' AND is_bot=0`))[0] || {};
   const companies = await q(`SELECT org, COUNT(DISTINCT vid) visitors, COUNT(*) views, COUNT(DISTINCT path) pages, MAX(ts) last,
-      SUM(CASE WHEN path GLOB '*[Pp]ric*' OR path GLOB '*ontact*' OR path GLOB '*ook*' OR path GLOB '*emo*' OR path GLOB '*uote*' OR path GLOB '*onsult*' THEN 1 ELSE 0 END) key_hits, MAX(city) city, MAX(region) region
+      SUM(CASE WHEN path GLOB '*[Pp]ric*' OR path GLOB '*ontact*' OR path GLOB '*ook*' OR path GLOB '*emo*' OR path GLOB '*uote*' OR path GLOB '*onsult*' THEN 1 ELSE 0 END) key_hits, MAX(city) city, MAX(region) region, GROUP_CONCAT(DISTINCT CASE WHEN path GLOB '*[Pp]ric*' OR path GLOB '*ontact*' OR path GLOB '*ook*' OR path GLOB '*emo*' OR path GLOB '*uote*' OR path GLOB '*onsult*' THEN path END) kp
     FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 AND org_kind='company' GROUP BY org ORDER BY (COUNT(*) + 5*SUM(CASE WHEN path GLOB '*[Pp]ric*' OR path GLOB '*ontact*' OR path GLOB '*ook*' OR path GLOB '*emo*' OR path GLOB '*uote*' OR path GLOB '*onsult*' THEN 1 ELSE 0 END)) DESC LIMIT 40`);
   const people = await env.DB.prepare(`SELECT p.*, (SELECT COUNT(*) FROM events e WHERE e.site=p.site AND e.vid=p.vid AND e.type='view') views FROM people p WHERE p.site=? AND p.updated>=? ORDER BY p.updated DESC LIMIT 100`).bind(site.site, since).all().then(r => r.results || []);
   const pages = await q(`SELECT path, COUNT(*) views, COUNT(DISTINCT vid) visitors FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 GROUP BY path ORDER BY views DESC LIMIT 15`);
@@ -178,6 +187,8 @@ async function dash(request, env, csv) {
   const clicks = await q(`SELECT json_extract(detail,'$.kind') kind, json_extract(detail,'$.text') txt, COUNT(*) n FROM events WHERE site=? AND ts>=? AND type='click' AND is_bot=0 GROUP BY kind, txt ORDER BY n DESC LIMIT 15`);
   const funnel = (await q(`SELECT SUM(type='form_start') starts, SUM(type='identify') ids, SUM(type='click' AND json_extract(detail,'$.kind') IN ('phone','email')) contacts FROM events WHERE site=? AND ts>=? AND is_bot=0`))[0] || {};
   const countries = await q(`SELECT COALESCE(country,'?') c, COUNT(*) views FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 GROUP BY c ORDER BY views DESC LIMIT 8`);
+  const dom = String(site.domain || "").toLowerCase().replace(/[^a-z0-9.-]/g, "");
+  const channels = await q(`SELECT channel, COUNT(*) n FROM (SELECT CASE WHEN lower(COALESCE(utm_source,'')) IN ('chatgpt.com','chatgpt','perplexity','gemini','claude') OR referrer LIKE '%chatgpt.com%' OR referrer LIKE '%chat.openai.com%' OR referrer LIKE '%perplexity.ai%' OR referrer LIKE '%gemini.google.com%' OR referrer LIKE '%claude.ai%' OR referrer LIKE '%copilot.microsoft.com%' OR referrer LIKE '%grok.com%' THEN 'AI assistant' WHEN referrer LIKE '%google.%' THEN 'Google' WHEN referrer LIKE '%bing.com%' OR referrer LIKE '%duckduckgo.com%' OR referrer LIKE '%yahoo.%' THEN 'Other search' WHEN referrer LIKE '%facebook.%' OR referrer LIKE '%instagram.%' OR referrer LIKE '%linkedin.%' OR referrer LIKE '%t.co/%' OR referrer LIKE '%twitter.%' OR referrer LIKE '%x.com%' OR referrer LIKE '%youtube.%' OR referrer LIKE '%tiktok.%' OR referrer LIKE '%reddit.%' THEN 'Social' WHEN referrer IS NULL OR referrer='' OR ('${dom}'!='' AND referrer LIKE '%${dom}%') THEN 'Direct' ELSE 'Other websites' END channel FROM events WHERE id IN (SELECT MIN(id) FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 GROUP BY COALESCE(sid,'a'||id))) GROUP BY channel ORDER BY n DESC`);
   const recent = await q(`SELECT ts, vid, path, city, region, country, device, org, org_kind FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 ORDER BY id DESC LIMIT 30`);
   if (csv) {
     const kind = u.searchParams.get("kind") || "companies", cell = v => { v = v == null ? "" : String(v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
@@ -186,10 +197,12 @@ async function dash(request, env, csv) {
       : [["company", "score", "visitors", "views", "pages", "key_pages", "city", "region", "last_seen"], ...companies.map(c => [c.org, c.views + 5 * c.key_hits, c.visitors, c.views, c.pages, c.key_hits, c.city, c.region, c.last])];
     return new Response(rowsOf.map(r => r.map(cell).join(",")).join("\r\n"), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="whos-there-${kind}-${days}d.csv"`, "cache-control": "no-store" } });
   }
-  const tbl = (head, rows) => `<div class="tw"><table><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${head.length}" class="m">No data yet</td></tr>`}</table></div>`;
-  const enc = encodeURIComponent, band = s => s >= 25 ? "Hot" : s >= 10 ? "Warm" : "New";
-  const callFirst = companies.length ? `<div class="cf">${companies.slice(0, 5).map(c => { const sc = c.views + 5 * c.key_hits; return `<div class="cc"><div><b>${esc(c.org)}</b> <span class="bd ${band(sc)}">${band(sc)}</span><div class="m">${c.visitors} visitor${c.visitors == 1 ? "" : "s"} · ${c.views} views · ${c.pages} pages${c.key_hits ? " · " + c.key_hits + " key page" + (c.key_hits == 1 ? "" : "s") : ""} · ${esc([c.city, c.region].filter(Boolean).join(", "))}</div></div><div class="lk"><a target="_blank" rel="noopener" href="https://www.linkedin.com/search/results/companies/?keywords=${enc(c.org)}">LinkedIn</a><a target="_blank" rel="noopener" href="https://www.google.com/search?q=${enc(c.org + " " + (c.city || ""))}">Google</a></div></div>`; }).join("")}</div>` : `<div class="tw"><table><tr><td class="m">No companies yet. Consented visitors from business networks show up here.</td></tr></table></div>`;
   const base0 = u.pathname.startsWith(BASE) ? BASE : "";
+  const cl = o => `${base0}/company?s=${esc(site.site)}&t=${esc(tok)}&org=${encodeURIComponent(o)}`;
+  const tbl = (head, rows) => `<div class="tw"><table><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${head.length}" class="m">No data yet</td></tr>`}</table></div>`;
+  const whyText = (c, sc) => [c.kp ? "looked at " + String(c.kp).split(",").slice(0, 3).join(", ") : null, c.pages > 2 ? "read " + c.pages + " different pages" : null, c.visitors > 1 ? c.visitors + " people from the same company" : null, "score " + sc].filter(Boolean).join(" · ");
+  const enc = encodeURIComponent, band = s => s >= 25 ? "Hot" : s >= 10 ? "Warm" : "New";
+  const callFirst = companies.length ? `<div class="cf">${companies.slice(0, 5).map(c => { const sc = c.views + 5 * c.key_hits; return `<div class="cc"><div><b>${esc(c.org)}</b> <span class="bd ${band(sc)}">${band(sc)}</span><div class="m">${c.visitors} visitor${c.visitors == 1 ? "" : "s"} · ${c.views} views · ${c.pages} pages${c.key_hits ? " · " + c.key_hits + " key page" + (c.key_hits == 1 ? "" : "s") : ""} · ${esc([c.city, c.region].filter(Boolean).join(", "))}</div><div class="m">Why: ${esc(whyText(c, sc))}</div></div><div class="lk"><a href="${cl(c.org)}">Timeline</a><a target="_blank" rel="noopener" href="https://www.linkedin.com/search/results/companies/?keywords=${enc(c.org)}">LinkedIn</a><a target="_blank" rel="noopener" href="https://www.google.com/search?q=${enc(c.org + " " + (c.city || ""))}">Google</a></div></div>`; }).join("")}</div>` : `<div class="tw"><table><tr><td class="m">No companies yet. Consented visitors from business networks show up here.</td></tr></table></div>`;
   const dl = k => `?s=${esc(site.site)}&t=${esc(tok)}&days=${days}&kind=${k}`;
   const rng = [1, 7, 30, 90].map(d => `<a ${d === days ? 'class="on"' : ""} href="?s=${esc(site.site)}&t=${esc(tok)}&days=${d}">${d === 1 ? "24h" : d + "d"}</a>`).join("");
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(site.name)} · Known Visitor</title>
@@ -197,13 +210,16 @@ async function dash(request, env, csv) {
 .k{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.k div{background:#121a33;border:1px solid #22305a;border-radius:12px;padding:14px}.k b{display:block;font-size:28px}.k small{color:#8392b5;text-transform:uppercase;font-size:11px;letter-spacing:.1em}
 body{overflow-x:hidden}.g>div,.cf{min-width:0}.cf{display:grid;gap:10px}.cc{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;background:#121a33;border:1px solid #22305a;border-radius:12px;padding:12px 14px}.cc b{color:#fff}.cc .m{color:#8392b5;font-size:13px}.lk{display:flex;gap:8px}.lk a{border:1px solid #2f5bea;border-radius:8px;padding:5px 10px;font-size:13px;color:#cfe}.bd{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;text-transform:uppercase}.bd.Hot{background:#d64545;color:#fff}.bd.Warm{background:#c47f00;color:#fff}.bd.New{background:#22305a;color:#8392b5}.tw{overflow-x:auto;background:#121a33;border:1px solid #22305a;border-radius:12px}table{border-collapse:collapse;width:100%}th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8392b5;text-align:left;padding:10px 12px;border-bottom:1px solid #22305a}td{padding:9px 12px;border-bottom:1px solid #1b2748;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}.m{color:#8392b5;text-align:center;padding:22px}.g{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:860px){.g{grid-template-columns:1fr}}.note{color:#8392b5;font-size:12px;margin-top:6px}</style></head><body>
 <h1>${esc(site.name)}</h1><p class="sub">Known Visitor · ${esc(site.domain || "")}</p><div class="r">${rng}</div>
-<div class="k"><div><b>${tot.views || 0}</b><small>All page views</small></div><div><b>${tot.visitors || 0}</b><small>Consented visitors</small></div><div><b>${tot.anon || 0}</b><small>Anonymous views</small></div><div><b>${tot.sessions || 0}</b><small>Sessions</small></div><div><b>${companies.length}</b><small>Companies</small></div><div><b>${people.length}</b><small>People</small></div><div><b>${Math.round(eng.s || 0)}s</b><small>Avg time</small></div></div>
+<div class="k"><div><b id="livec">…</b><small>On site now</small></div><div><b>${tot.views || 0}</b><small>All page views</small></div><div><b>${tot.visitors || 0}</b><small>Consented visitors</small></div><div><b>${tot.anon || 0}</b><small>Anonymous views</small></div><div><b>${tot.sessions || 0}</b><small>Sessions</small></div><div><b>${companies.length}</b><small>Companies</small></div><div><b>${people.length}</b><small>People</small></div><div><b>${Math.round(eng.s || 0)}s</b><small>Avg time</small></div></div>
 <h2>Call these first</h2>${callFirst}
-<p class="note">Ranked by pages read, with extra weight for pricing, contact, booking and quote pages. Links open a search for that company, so you can find the right person.</p>
+<p class="note">Score = page views, plus 5 extra for every view of a pricing, contact, booking, demo, quote or consult page. Hot is 25 or more, Warm is 10 or more. "Why" shows what earned the score. Timeline shows their full visit. LinkedIn and Google open a search so you can find the right person.</p>
+<h2>On the site right now</h2><div class="cf" id="livel"><div class="m">Checking…</div></div>
 <h2>Companies visiting</h2>${tbl(["Company", "Score", "Visitors", "Views", "Pages", "Key pages", "Where", "Last seen"], companies.map(c => [c.org, c.views + 5 * c.key_hits, c.visitors, c.views, c.pages, c.key_hits, [c.city, c.region].filter(Boolean).join(", "), (c.last || "").slice(0, 16).replace("T", " ")]))}
 <p class="note">Company = the organization that owns the visitor's network, shown only for visitors who accepted. Home and mobile visitors show only as location, never a name. "Anonymous views" are visits counted without consent: no ID, no company, no IP stored.</p>
 <h2>People who identified themselves</h2>${tbl(["Name", "Email", "Phone", "How", "Views", "When"], people.map(p => [p.name, p.email, p.phone, p.source, p.views, (p.updated || "").slice(0, 16).replace("T", " ")]))}
 <div class="g"><div><h2>Top pages</h2>${tbl(["Page", "Views", "Visitors"], pages.map(p => [p.path, p.views, p.visitors]))}</div><div><h2>Sources</h2>${tbl(["Source", "Sessions"], sources.map(x => [x.src, x.sessions]))}</div></div>
+<h2>How visitors found you</h2>${tbl(["Channel", "Visits"], channels.map(x => [x.channel, x.n]))}
+<p class="note">Where each visit started: AI assistants (ChatGPT, Perplexity, Gemini, Claude and others), Google, social, or typed in directly.</p>
 <h2>AI assistants sending visitors</h2>${tbl(["Assistant", "Visits", "Last"], ai.map(a => [a.src, a.views, (a.last || "").slice(0, 16).replace("T", " ")]))}
 <p class="note">People who clicked a link inside ChatGPT, Perplexity, Gemini, Claude and similar. This is proof AI is recommending the site.</p>
 <h2>AI and search crawlers reading the site</h2>${tbl(["Crawler", "Hits", "Pages", "Last"], crawlers.map(c => [c.bot, c.hits, c.pages, (c.last || "").slice(0, 16).replace("T", " ")]))}
@@ -211,8 +227,118 @@ body{overflow-x:hidden}.g>div,.cf{min-width:0}.cf{display:grid;gap:10px}.cc{disp
 <div class="g"><div><h2>What visitors click</h2>${tbl(["Type", "Button or link", "Clicks"], clicks.map(c => [c.kind, c.txt, c.n]))}</div><div><h2>Actions and countries</h2>${tbl(["Measure", "Count"], [["Started a form", funnel.starts || 0], ["Identified themselves", funnel.ids || 0], ["Tapped call or email", funnel.contacts || 0], ...countries.map(x => ["Views from " + x.c, x.views])])}</div></div>
 <h2>Recent visits</h2>${tbl(["Time (UTC)", "Visitor", "Page", "Who / where", "Device"], recent.map(v => [(v.ts || "").slice(0, 16).replace("T", " "), (v.vid || "").slice(0, 6), v.path, v.org_kind === "company" ? v.org : v.org_kind === "anon" ? "Anonymous (" + (v.country || "?") + ")" : [v.city, v.region, v.country].filter(Boolean).join(", "), v.device]))}
 <p class="note">Download: <a href="${base0}/dash.csv${dl("companies")}">companies</a> · <a href="${base0}/dash.csv${dl("people")}">people</a> · <a href="${base0}/dash.csv${dl("events")}">recent visits</a> (CSV)</p>
+<script>(function(){var u="${base0}/live?s=${esc(site.site)}&t=${esc(tok)}";function r(){fetch(u,{cache:"no-store"}).then(function(x){return x.json()}).then(function(j){document.getElementById("livec").textContent=j.count;var l=document.getElementById("livel");l.textContent="";if(!j.rows.length){var e=document.createElement("div");e.className="m";e.textContent="No one on the site right now.";l.appendChild(e);return}j.rows.forEach(function(v){var d=document.createElement("div");d.className="cc";d.textContent=v.who+" · "+v.path+" · "+v.ago;l.appendChild(d)})}).catch(function(){})}r();setInterval(r,15000)})()</script>
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+
+// ---------------------------------------------------------------- company timeline, live, digest
+async function authSite(env, u) {
+  await ensure(env.DB);
+  const site = await env.DB.prepare(`SELECT * FROM sites WHERE site=?`).bind(u.searchParams.get("s") || "").first(), tok = u.searchParams.get("t") || "";
+  return site && tok && tok === site.token ? site : null;
+}
+const ago = ts => { const m = Math.max(0, Math.round((Date.now() - Date.parse(ts)) / 60000)); return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; };
+async function live(request, env) {
+  const u = new URL(request.url), site = await authSite(env, u); if (!site) return json({ error: "not found" }, 404);
+  const since = new Date(Date.now() - 5 * 60000).toISOString();
+  const rows = (await env.DB.prepare(`SELECT ts, vid, path, city, region, country, org, org_kind FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 ORDER BY id DESC LIMIT 40`).bind(site.site, since).all()).results || [];
+  const seen = new Set(), out = [];
+  for (const r of rows) { const k = r.vid || r.path + r.ts; if (seen.has(k)) continue; seen.add(k); out.push({ who: r.org_kind === "company" ? r.org : r.org_kind === "anon" ? "Anonymous visitor" : [r.city, r.region, r.country].filter(Boolean).join(", ") || "Visitor", path: r.path, ago: ago(r.ts) }); }
+  return json({ count: out.length, rows: out.slice(0, 15) });
+}
+async function company(request, env, base) {
+  const u = new URL(request.url), site = await authSite(env, u); if (!site) return new Response("Not found", { status: 404 });
+  const org = s(u.searchParams.get("org"), 200) || "", since = new Date(Date.now() - 90 * 864e5).toISOString();
+  const rows = (await env.DB.prepare(`SELECT ts, type, vid, path, title, referrer, seconds, scroll, city, region, detail FROM events WHERE site=? AND ts>=? AND org=? AND org_kind='company' AND is_bot=0 ORDER BY ts ASC LIMIT 400`).bind(site.site, since, org).all()).results || [];
+  const label = { view: "Viewed", leave: "Left", click: "Tapped", form_start: "Started a form", identify: "Identified themselves", event: "Event" };
+  let day = "", body = "";
+  for (const r of rows) {
+    const d = (r.ts || "").slice(0, 10); if (d !== day) { day = d; body += `<h3>${esc(d)}</h3>`; }
+    let det = {}; try { det = JSON.parse(r.detail || "{}"); } catch { }
+    const extra = r.type === "leave" ? `${r.seconds || 0}s on page, ${r.scroll || 0}% scrolled` : r.type === "click" ? esc([det.kind, det.text].filter(Boolean).join(": ")) : r.type === "view" && r.referrer ? "from " + esc(String(r.referrer).replace(/^https?:\/\//, "").slice(0, 60)) : "";
+    body += `<div class="e"><span class="t">${esc((r.ts || "").slice(11, 16))}</span><span><b>${label[r.type] || esc(r.type)}</b> ${esc(r.path || "")}<br><small>${extra} · visitor ${esc((r.vid || "").slice(0, 6))}</small></span></div>`;
+  }
+  const visitors = new Set(rows.map(r => r.vid)).size, views = rows.filter(r => r.type === "view").length;
+  const back = `${base}/dash?s=${esc(site.site)}&t=${esc(site.token)}`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(org)} · Visit timeline</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#e8ecf5;font:15px/1.5 system-ui,-apple-system,sans-serif;padding:20px clamp(14px,4vw,40px);overflow-x:hidden}a{color:#8fb0ff}h1{margin:.2em 0;font-size:24px}h3{color:#9fb0d6;margin:22px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.08em}.e{display:flex;gap:12px;background:#121a33;border:1px solid #22305a;border-radius:10px;padding:10px 12px;margin:6px 0;word-break:break-word}.t{color:#8fb0ff;font-variant-numeric:tabular-nums;min-width:44px}small{color:#8392b5}</style></head><body>
+<a href="${back}">← Back to dashboard</a><h1>${esc(org || "Unknown")}</h1><p style="color:#8392b5">${visitors} visitor${visitors == 1 ? "" : "s"} · ${views} page view${views == 1 ? "" : "s"} · last 90 days · times in UTC</p>${body || "<p>No visits found for this company yet.</p>"}</body></html>`;
+  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+async function digestText(env, site, days = 7) {
+  const since = new Date(Date.now() - days * 864e5).toISOString(), q = async (sql) => (await env.DB.prepare(sql).bind(site.site, since).all()).results || [];
+  const t = (await q(`SELECT COUNT(*) v, COUNT(DISTINCT vid) p FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0`))[0] || {};
+  const co = await q(`SELECT org, COUNT(*) views, SUM(CASE WHEN path GLOB '*[Pp]ric*' OR path GLOB '*ontact*' OR path GLOB '*ook*' OR path GLOB '*emo*' OR path GLOB '*uote*' OR path GLOB '*onsult*' THEN 1 ELSE 0 END) k FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 AND org_kind='company' GROUP BY org ORDER BY (COUNT(*)+5*SUM(CASE WHEN path GLOB '*[Pp]ric*' OR path GLOB '*ontact*' OR path GLOB '*ook*' OR path GLOB '*emo*' OR path GLOB '*uote*' OR path GLOB '*onsult*' THEN 1 ELSE 0 END)) DESC LIMIT 5`);
+  const ai = (await q(`SELECT COUNT(*) n FROM events WHERE site=? AND ts>=? AND type='view' AND is_bot=0 AND (referrer LIKE '%chatgpt.com%' OR referrer LIKE '%perplexity.ai%' OR referrer LIKE '%gemini.google.com%' OR referrer LIKE '%claude.ai%' OR referrer LIKE '%copilot.microsoft.com%')`))[0] || {};
+  const act = (await q(`SELECT SUM(type='form_start') f, SUM(type='identify') i, SUM(type='click' AND json_extract(detail,'$.kind') IN ('phone','email')) c FROM events WHERE site=? AND ts>=? AND is_bot=0`))[0] || {};
+  const lines = [`${site.name}: last ${days} days`, `${t.v || 0} page views from ${t.p || 0} consented visitors`, `${ai.n || 0} visits sent by AI assistants`, `${act.c || 0} call/email taps, ${act.f || 0} forms started, ${act.i || 0} people identified`];
+  lines.push(co.length ? "Top companies:" : "No companies identified yet.");
+  co.forEach((c, i) => lines.push(`${i + 1}. ${c.org} (${c.views} views${c.k ? ", " + c.k + " on key pages" : ""})`));
+  lines.push(`Dashboard: ${ORIGIN}/dash?s=${site.site}&t=${site.token}`);
+  return lines.join("\n");
+}
+async function digestRun(env, site) {
+  const text = await digestText(env, site);
+  await notify(env, site, text, false);
+  if (env.RESEND_API_KEY && env.REPORT_FROM && site.report_email) {
+    try { await fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" }, body: JSON.stringify({ from: env.REPORT_FROM, to: [site.report_email], subject: `${site.name}: your weekly Who's There report`, text }) }); } catch { }
+  }
+  return text;
+}
+
+// ---------------------------------------------------------------- signup, install, requests
+const PAGE_CSS = `*{box-sizing:border-box}body{margin:0;background:#fff;color:#12151c;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}main{max-width:720px;margin:0 auto;padding:28px 18px 60px}h1{font-size:2rem;letter-spacing:-.02em;margin:.2em 0}h2{font-size:1.15rem;margin:1.6em 0 .4em}p,li{color:#3a4152}.k{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#2f5bea;font-weight:700}a{color:#2f5bea}input,select,textarea,button{font:inherit;width:100%;padding:13px;border-radius:10px;border:1px solid #cfd4df;margin:6px 0}button{background:#2f5bea;color:#fff;border:0;font-weight:700;cursor:pointer}code{display:block;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:10px;padding:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;font-size:13px;margin:8px 0}.c{background:#f7f8fb;border:1px solid #e6e8ee;border-radius:12px;padding:14px 18px;margin:14px 0}.ok{background:#eefaf3;border-color:#bfe6cf}`;
+const shell = (title, inner) => new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} | Who's There</title><style>${PAGE_CSS}</style></head><body><main><div class="k">Who's There · AIrecommend.ai</div>${inner}</main></body></html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+function signupPage(base) {
+  return shell("Get started", `<h1>Get your install code</h1><p>Takes about two minutes. You get a private dashboard and one line of code to put on your website. A consent banner is included, so visitors choose before anything is stored.</p>
+<form id="f"><input name="name" placeholder="Business name" required><input name="domain" placeholder="Your website (example.com)" required><input name="email" type="email" placeholder="Your email" required><button>Create my dashboard</button></form><div id="out"></div>
+<p style="font-size:14px;color:#6b7280">By continuing you agree to use this only on a website you own or manage, and to keep the consent banner on. Plans and pricing: <a href="${esc(base)}/#pricing">see pricing</a>.</p>
+<script>var f=document.getElementById("f"),o=document.getElementById("out");function line(t,c){var d=document.createElement(c?"code":"p");d.textContent=t;o.appendChild(d)}
+f.addEventListener("submit",function(e){e.preventDefault();var b=f.querySelector("button");b.disabled=true;b.textContent="Creating…";fetch("${esc(base)}/api/signup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:f.name.value,domain:f.domain.value,email:f.email.value})}).then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})}).then(function(x){o.textContent="";if(!x.ok){line(x.j.error||"Something went wrong. Please try again.");b.disabled=false;b.textContent="Create my dashboard";return}
+line("You're set up. Save this page: the dashboard link is private.");line("1. Put this in your website's head section:");line(x.j.snippet,1);var a=document.createElement("p");a.innerHTML='2. <a></a> &nbsp;3. <a class="g"></a>';var l=a.querySelectorAll("a");l[0].href=x.j.install;l[0].textContent="Step-by-step install guide (WordPress, Shopify, Wix and more)";l[1].href=x.j.dashboard;l[1].textContent="Open your private dashboard";o.appendChild(a);f.style.display="none"}).catch(function(){o.textContent="Network error. Please try again.";b.disabled=false;b.textContent="Create my dashboard"})});</script>`);
+}
+function installPage(base, siteKey) {
+  const key = /^kv_[a-z0-9]{6,20}$/.test(siteKey || "") ? siteKey : "YOUR_SITE_KEY";
+  const sn = `<script async src="${ORIGIN}/v.js?s=${key}"></script>`;
+  const li = (h, steps) => `<h2>${h}</h2><ol>${steps.map(x => `<li>${x}</li>`).join("")}</ol>`;
+  return shell("Install guide", `<h1>Install in 2 minutes</h1><p>Your code${key === "YOUR_SITE_KEY" ? " (replace YOUR_SITE_KEY with the key from your signup)" : ""}:</p><code>${esc(sn)}</code><p>Paste it once into the <b>head</b> section of your site. Menu names change now and then, so if a step looks different, tell us and we'll help.</p>
+${li("WordPress", ["Install the free plugin “WPCode” (or “Insert Headers and Footers”).", "Open it and choose Header &amp; Footer (or add a new snippet set to “Site Wide Header”).", "Paste the code in the Header box and save."])}
+${li("Shopify", ["Online Store, then Themes, then the three dots next to your theme, then Edit code.", "Open <b>theme.liquid</b> and paste the code just before the closing <b>&lt;/head&gt;</b> tag.", "Save."])}
+${li("Wix", ["Settings, then Custom Code (under Advanced), then Add Custom Code.", "Paste the code, set it to load on All pages, in the Head, and apply."])}
+${li("Squarespace", ["Settings, then Advanced, then Code Injection (needs a plan that supports it).", "Paste the code in the Header box and save."])}
+${li("Webflow", ["Project settings, then Custom code.", "Paste in Head code, save, and publish the site."])}
+${li("Any other site", ["Paste it before the closing &lt;/head&gt; tag of your pages, or ask your web person to."])}
+<div class="c ok"><b>Check it worked:</b> open your website, and you should see the privacy banner at the bottom. Then your dashboard starts counting.</div>
+<div class="c"><b>Add this to your privacy policy:</b> We use Who's There analytics (AIrecommend.ai). With your consent it stores a random ID in your browser and records pages viewed, approximate location and, for business networks, the organization name. Without consent we only count visits anonymously. Details and choices: ${esc(ORIGIN)}/privacy?s=${esc(key)}</div>`);
+}
+async function signup(request, env) {
+  let b; try { b = await request.json(); } catch { return json({ error: "Please fill in every field." }, 400); }
+  const name = s(b.name, 120), email = s(b.email, 200), dom = String(b.domain || "").toLowerCase().trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
+  if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || "")) return json({ error: "Please enter your business name and a valid email." }, 400);
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(dom) || dom.length > 100) return json({ error: "Please enter your website like example.com." }, 400);
+  await ensure(env.DB);
+  const ip = request.headers.get("cf-connecting-ip") || "", ih = ip ? await sha(ip + "|signup") : "", day = new Date(Date.now() - 864e5).toISOString();
+  const mine = (await env.DB.prepare(`SELECT COUNT(*) n FROM requests WHERE kind='signup' AND ts>=? AND ip_hash=?`).bind(day, ih).first()).n, all = (await env.DB.prepare(`SELECT COUNT(*) n FROM requests WHERE kind='signup' AND ts>=?`).bind(day).first()).n;
+  if (mine >= 3 || all >= 40) return json({ error: "Too many sign-ups right now. Please try again tomorrow or contact us." }, 429);
+  if (await env.DB.prepare(`SELECT 1 FROM sites WHERE domain=?`).bind(dom).first()) return json({ error: "That website is already set up. Contact us if you need access to it." }, 409);
+  const r = await createSite(env, name, dom, null);
+  await env.DB.batch([env.DB.prepare(`UPDATE sites SET owner_email=?, report_email=? WHERE site=?`).bind(email, email, r.site), env.DB.prepare(`INSERT INTO requests (ts,kind,site,email,details,ip_hash) VALUES (?,?,?,?,?,?)`).bind(new Date().toISOString(), "signup", r.site, email, name + " / " + dom, ih)]);
+  SITES = null;
+  const owner = await env.DB.prepare(`SELECT * FROM sites WHERE site='kv_i8uqzb5daf3u'`).first(); if (owner) await notify(env, owner, `New Who's There signup: ${name} (${dom}) ${email}`, false);
+  return json({ ok: true, snippet: `<script async src="${ORIGIN}/v.js?s=${r.site}"></script>`, dashboard: `${ORIGIN}/dash?s=${r.site}&t=${r.token}`, install: `${ORIGIN}/install?s=${r.site}` });
+}
+async function privacyRequest(request, env) {
+  let b; try { b = await request.json(); } catch { return json({ error: "bad request" }, 400); }
+  const email = s(b.email, 200), kind = ["see", "delete", "other"].includes(b.kind) ? b.kind : "other";
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || "")) return json({ error: "Please enter a valid email." }, 400);
+  await ensure(env.DB);
+  const site = await env.DB.prepare(`SELECT * FROM sites WHERE site=?`).bind(s(b.s, 40) || "").first(); if (!site) return json({ error: "Unknown site." }, 404);
+  const ip = request.headers.get("cf-connecting-ip") || "", ih = ip ? await sha(ip + "|req") : "";
+  if ((await env.DB.prepare(`SELECT COUNT(*) n FROM requests WHERE kind LIKE 'priv-%' AND ts>=? AND ip_hash=?`).bind(new Date(Date.now() - 864e5).toISOString(), ih).first()).n >= 5) return json({ error: "Too many requests today." }, 429);
+  await env.DB.prepare(`INSERT INTO requests (ts,kind,site,email,details,ip_hash) VALUES (?,?,?,?,?,?)`).bind(new Date().toISOString(), "priv-" + kind, site.site, email, s(b.details, 1000), ih).run();
+  await notify(env, site, `Privacy request (${kind}) for ${site.name} from ${email}: ${s(b.details, 200) || ""}`, true);
+  return json({ ok: true });
 }
 
 // ---------------------------------------------------------------- admin
@@ -257,6 +383,9 @@ async function privacy(request, env, base) {
 <h2>What we do not do</h2><ul><li>No selling of data, and no following you across other websites.</li><li>No advertising profiles.</li></ul>
 <h2>Keeping your data</h2><p>Visit records are deleted after 24 months.</p>
 <h2>Changing your mind</h2><p>Use the “Privacy settings” button at the bottom-left of the website to switch tracking off at any time. This also removes the ID from your browser. To ask what is held about you or to have it deleted, contact ${esc(name)}, or AIrecommend.ai through <a href="https://airecommend.ai/whosthere">airecommend.ai/whosthere</a>.</p>
+<h2>Ask to see or delete your data</h2><p>Tell us your email and what you need. We pass it to ${esc(name)} and act on it.</p>
+<form id="rq"><input name="email" type="email" placeholder="Your email" required style="width:100%;padding:12px;margin:6px 0;border:1px solid #cfd4df;border-radius:10px"><select name="kind" style="width:100%;padding:12px;margin:6px 0;border:1px solid #cfd4df;border-radius:10px"><option value="see">Show me what you hold about me</option><option value="delete">Delete my data</option><option value="other">Something else</option></select><textarea name="details" rows="2" placeholder="Anything we should know (optional)" style="width:100%;padding:12px;margin:6px 0;border:1px solid #cfd4df;border-radius:10px"></textarea><button style="width:100%;padding:13px;border:0;border-radius:10px;background:#2f5bea;color:#fff;font-weight:700">Send request</button></form><p id="rqo"></p>
+<script>var rq=document.getElementById("rq");rq.addEventListener("submit",function(e){e.preventDefault();fetch("${esc(base)}/api/request",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({s:${JSON.stringify(u.searchParams.get("s") || "")},email:rq.email.value,kind:rq.kind.value,details:rq.details.value})}).then(function(r){return r.json()}).then(function(j){document.getElementById("rqo").textContent=j.ok?"Thank you. Your request was sent.":(j.error||"Could not send. Please try again.")}).catch(function(){document.getElementById("rqo").textContent="Network error. Please try again."})});</script>
 <div class="c"><b>Who is responsible:</b> ${esc(name)} decides to use this tool on its website. AIrecommend.ai provides and hosts the tool. This page describes how the tool works and is not legal advice.</div>
 </main></body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" } });
@@ -302,7 +431,7 @@ async function edge(request, env, ctx) {
 const BASE = "/whosthere";
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil((async () => { await ensure(env.DB); const cut = new Date(Date.now() - 730 * 864e5).toISOString(); await env.DB.batch([env.DB.prepare(`DELETE FROM events WHERE ts<?`).bind(cut), env.DB.prepare(`DELETE FROM alerts WHERE day<?`).bind(cut.slice(0, 10))]); })());
+    ctx.waitUntil((async () => { await ensure(env.DB); const cut = new Date(Date.now() - 730 * 864e5).toISOString(); await env.DB.batch([env.DB.prepare(`DELETE FROM events WHERE ts<?`).bind(cut), env.DB.prepare(`DELETE FROM alerts WHERE day<?`).bind(cut.slice(0, 10))]); if (new Date().getUTCDay() === 1) { const all = (await env.DB.prepare(`SELECT * FROM sites`).all()).results || []; for (const st of all) { try { await digestRun(env, st); } catch { } } } })());
   },
   async fetch(request, env, ctx) {
     const u = new URL(request.url);
@@ -330,6 +459,13 @@ export default {
         return json({ ...r, snippet: `<script async src="${u.origin}${base}/v.js?s=${r.site}"></script>`, dashboard: `${u.origin}${base}/dash?s=${r.site}&t=${r.token}` });
       }
       if (p === "/privacy" && request.method === "GET") return privacy(request, env, base);
+      if (p === "/company") return await company(request, env, base);
+      if (p === "/live") return await live(request, env);
+      if (p === "/digest") { const site = await authSite(env, u); if (!site) return new Response("Not found", { status: 404 }); const txt = u.searchParams.get("send") === "1" ? await digestRun(env, site) : await digestText(env, site); return new Response(txt, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } }); }
+      if (p === "/signup" && request.method === "GET") return signupPage(base);
+      if (p === "/api/signup" && request.method === "POST") return await signup(request, env);
+      if (p === "/install") return installPage(base, u.searchParams.get("s"));
+      if (p === "/api/request" && request.method === "POST") return await privacyRequest(request, env);
       if (p === "/health") return json({ ok: true, service: "known-visitor" });
       return new Response("not found", { status: 404 });
     } catch (e) { return json({ error: String(e && e.message) }, 500); }
