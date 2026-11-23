@@ -136,7 +136,7 @@ async function collect(request, env, ctx) {
     if (first.type === "view" && KEY_PAGES.test(first.path || "")) why = `viewed ${s(first.path, 100)}`;
     else if (first.type === "click" && first.detail && (first.detail.kind === "phone" || first.detail.kind === "email")) why = `tapped ${first.detail.kind} (${s(first.detail.text, 40)}) on ${s(first.path, 80)}`;
     else if (first.type === "form_start") why = `started a form on ${s(first.path, 80)}`;
-    if (first.type === "view" && (site.alert_webhook || site.crm_url || site.hubspot_token)) {
+    if (first.type === "view" && (site.alert_webhook || site.crm_url || site.hubspot_token || site.report_email)) {
       try {
         const prior = (await env.DB.prepare(`SELECT path, substr(ts,1,10) d FROM events WHERE site=? AND vid=? AND type='view' AND substr(ts,1,10)<? AND ts>=? ORDER BY ts DESC LIMIT 60`).bind(site.site, s(first.vid, 40), day, new Date(Date.now() - 14 * 864e5).toISOString()).all()).results || [];
         const hit = prior.find(r => KEY_PAGES.test(r.path || ""));
@@ -184,10 +184,12 @@ async function crmPush(env, site, ev) {
   }
 }
 async function alert(env, site, text, vid, day, ev) {
-  if (!site.alert_webhook && !site.crm_url && !site.hubspot_token) return;
+  const mailOn = !!(site.report_email && await getMail(env));
+  if (!site.alert_webhook && !site.crm_url && !site.hubspot_token && !mailOn) return;
   const r = await env.DB.prepare(`INSERT OR IGNORE INTO alerts (site,vid,day) VALUES (?,?,?)`).bind(site.site, vid, day).run();
   if (!r.meta || !r.meta.changes) return;
   await notify(env, site, text, true);
+  if (mailOn) await sendMail(env, site.report_email, `${brandOf(site)}: ${text.slice(0, 80)}`, `${text}\n\nOpen your dashboard: ${ORIGIN}/dash?s=${site.site}&t=${site.token}\n\nChange where alerts go: ${ORIGIN}/settings?s=${site.site}&t=${site.token}`);
   if (ev) await crmPush(env, site, ev);
 }
 
@@ -311,9 +313,7 @@ async function digestText(env, site, days = 7) {
 async function digestRun(env, site) {
   const text = await digestText(env, site);
   await notify(env, site, text, false);
-  if (env.RESEND_API_KEY && env.REPORT_FROM && site.report_email) {
-    try { await fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" }, body: JSON.stringify({ from: env.REPORT_FROM, to: [site.report_email], subject: `${site.name}: your weekly Who's There report`, text }) }); } catch { }
-  }
+  if (site.report_email) await sendMail(env, site.report_email, `${site.name}: your weekly ${brandOf(site)} report`, text);
   return text;
 }
 
@@ -325,7 +325,7 @@ async function settingsPage(request, env, base) {
 <form id="f"><label>Alerts to Slack, Discord or ntfy (webhook link)<input name="alert_webhook" value="${esc(site.alert_webhook || "")}" placeholder="https://hooks.slack.com/..."></label>
 <label>CRM or automation link (Zapier, Make, n8n or any webhook)<input name="crm_url" value="${esc(site.crm_url || "")}" placeholder="https://hooks.zapier.com/..."></label>
 <label>HubSpot private app token ${site.hubspot_token ? "(one is saved; type a new one to replace it, or type OFF to remove it)" : "(optional)"}<input name="hubspot_token" type="password" autocomplete="off" placeholder="${site.hubspot_token ? "saved" : "pat-..."}"></label>
-<label>Weekly report email<input name="report_email" type="email" value="${esc(site.report_email || "")}"></label>
+<label>Email for alerts and the weekly report<input name="report_email" type="email" value="${esc(site.report_email || "")}"></label>
 <button>Save</button> <button type="button" id="t" style="background:#e9ecf3;color:#12151c">Send a test to my CRM link</button></form><p id="o"></p>
 <p style="font-size:14px;color:#6b7280">What is sent: company name, city, the page and why it counted as hot. For people who typed their details into a form: their name, email and phone. Nothing is sent for visitors who did not accept the consent banner.</p>
 <script>var f=document.getElementById("f"),o=document.getElementById("o");function body(extra){var d={s:${JSON.stringify(site.site)},t:${JSON.stringify(site.token)}};["alert_webhook","crm_url","hubspot_token","report_email"].forEach(function(k){var v=f[k].value;if(k==="hubspot_token"&&v==="")return;d[k]=v});for(var k in extra)d[k]=extra[k];return JSON.stringify(d)}
@@ -381,6 +381,7 @@ ${li("Wix", ["Settings, then Custom Code (under Advanced), then Add Custom Code.
 ${li("Squarespace", ["Settings, then Advanced, then Code Injection (needs a plan that supports it).", "Paste the code in the Header box and save."])}
 ${li("Webflow", ["Project settings, then Custom code.", "Paste in Head code, save, and publish the site."])}
 ${li("Any other site", ["Paste it before the closing &lt;/head&gt; tag of your pages, or ask your web person to."])}
+<div class="c"><b>Not technical?</b> <a href="${base}/install-help">We will install it for you</a>.</div>
 <div class="c ok"><b>Check it worked:</b> open your website, and you should see the privacy banner at the bottom. Then your dashboard starts counting.</div>
 <div class="c"><b>Add this to your privacy policy:</b> We use Who's There analytics (AIrecommend.ai). With your consent it stores a random ID in your browser and records pages viewed, approximate location and, for business networks, the organization name. Without consent we only count visits anonymously. Details and choices: ${esc(ORIGIN)}/privacy?s=${esc(key)}</div>`);
 }
@@ -561,6 +562,65 @@ async function repBrand(request, env) {
   return json({ ok: !!(r.meta && r.meta.changes) });
 }
 
+// ---------------------------------------------------------------- email (alerts + reports), demo, pitch sheet, install help
+async function getMail(env) {
+  let key = env.RESEND_API_KEY || "", from = env.REPORT_FROM || "";
+  if (!key || !from) { try { const rs = (await env.DB.prepare(`SELECT k,v FROM settings WHERE k IN ('mail_key','mail_from')`).all()).results || []; for (const r of rs) { if (r.k === "mail_key" && !key) key = r.v; if (r.k === "mail_from" && !from) from = r.v; } } catch { } }
+  return key && from ? { key, from } : null;
+}
+async function sendMail(env, to, subject, text) {
+  const m = await getMail(env); if (!m || !to) return { ok: false, status: "not configured" };
+  try {
+    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: "Bearer " + m.key, "content-type": "application/json" }, body: JSON.stringify({ from: m.from, to: [to], subject, text }) });
+    return { ok: r.ok, status: r.status };
+  } catch (e) { return { ok: false, status: "error" }; }
+}
+async function mailAdmin(request, env, base) {
+  const u = new URL(request.url), key = u.searchParams.get("key") || "";
+  if (!(await isAdmin(env, key))) return new Response("Not found", { status: 404 });
+  const m = await getMail(env);
+  return shell("Email sending", `<style>input,button{font:inherit;padding:12px;border-radius:10px;border:1px solid #cfd4df;width:100%;margin:6px 0}button{background:#2f5bea;color:#fff;border:0;font-weight:700}</style><h1>Email sending</h1><p>${m ? "Email is <b>on</b>. Customers get hot-visitor alerts and the weekly report by email." : "Email is <b>off</b>. Paste your Resend key and a From address to turn it on."}</p>
+<form id="f"><input name="rkey" type="password" placeholder="Resend key (starts with re_)" autocomplete="off"><input name="from" placeholder="From, for example Who's There &lt;alerts@airecommend.ai&gt;" value="${esc(m ? m.from : "")}"><input name="to" type="email" placeholder="Send a test email to (your email)"><button>Save and send test</button><p id="o"></p></form>
+<script>document.getElementById("f").addEventListener("submit",function(e){e.preventDefault();var f=e.target,o=document.getElementById("o");o.textContent="Working…";fetch("${base}/api/admin/mail",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:${JSON.stringify(key)},rkey:f.rkey.value,from:f.from.value,to:f.to.value})}).then(function(r){return r.json()}).then(function(j){o.textContent=j.message||j.error||"Done"}).catch(function(){o.textContent="Try again"})})</script>`);
+}
+async function mailSave(request, env) {
+  let b; try { b = await request.json(); } catch { return json({ error: "bad request" }, 400); }
+  if (!(await isAdmin(env, String(b.key || "")))) return json({ error: "not allowed" }, 403);
+  await ensure(env.DB);
+  const rk = String(b.rkey || "").trim(), from = String(b.from || "").trim().slice(0, 200), to = String(b.to || "").trim();
+  if (rk) { if (!/^re_[A-Za-z0-9_\-]{10,}$/.test(rk)) return json({ error: "That does not look like a Resend key." }, 400); await env.DB.prepare(`INSERT INTO settings (k,v) VALUES ('mail_key',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`).bind(rk).run(); }
+  if (from) await env.DB.prepare(`INSERT INTO settings (k,v) VALUES ('mail_from',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v`).bind(from).run();
+  if (!(await getMail(env))) return json({ message: "Saved. Add both the key and the From address to turn email on." });
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { const r = await sendMail(env, to, "Who's There email test", "This is a test from Who's There. Email alerts are working."); return json({ message: r.ok ? "Saved. Test email sent to " + to + "." : "Saved, but the test email failed (" + r.status + "). Check the key and that the From domain is verified in Resend." }); }
+  return json({ message: "Saved. Email is on." });
+}
+
+const DEMO_CSS = `<style>main{max-width:760px}.tag{display:inline-block;background:#fff4d6;color:#8a5a00;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.ph{background:#12151c;color:#e9ecf3;border-radius:22px;padding:14px;max-width:380px;margin:14px 0}.nt{background:#1e2330;border-radius:14px;padding:11px 13px;margin:9px 0;font-size:15px;line-height:1.4}.nt small{display:block;color:#9aa2b1;margin-bottom:3px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#f7f8fb;border:1px solid #e6e8ee;border-radius:12px;padding:12px 14px;margin:8px 0}.row b{display:block}.row span{color:#6b7280;font-size:14px}.sc{min-width:56px;text-align:center;border-radius:10px;padding:6px 8px;font-weight:800;color:#fff}.hot{background:#d64545}.warm{background:#c47f00}.cool{background:#6b7280}.b{display:inline-block;border-radius:12px;padding:13px 20px;margin:5px 8px 5px 0;text-decoration:none;font-weight:700;background:linear-gradient(135deg,#2f5bea,#7c3aed);color:#fff}.g{background:#0f9d58}</style>`;
+function demoPage(base) {
+  const row = (n, s, c, why) => `<div class="row"><div><b>${n}</b><span>${why}</span></div><div class="sc ${c}">${s}</div></div>`;
+  return shell("See it in action", `${DEMO_CSS}<span class="tag">Sample data, not a real customer</span><h1>This is what you get.</h1><p>Meet <b>Riverside Dental</b>, an example customer. Here is a normal Tuesday on their website, as it shows up on their phone and in their dashboard.</p>
+<h2>1. Pings on their phone</h2><div class="ph"><div class="nt"><small>Who's There · 9:42 AM</small>Hot visitor on Riverside Dental: Harbor Medical Group looked at your Pricing page and your Contact page.</div><div class="nt"><small>Who's There · 1:15 PM</small>Welcome back: Sunrise Realty is back (looked at Book a visit on Nov 14).</div><div class="nt"><small>Who's There · 4:03 PM</small>Hot visitor on Riverside Dental: a visitor from ChatGPT started the appointment form.</div></div>
+<h2>2. Call these first</h2>${row("Harbor Medical Group", "86", "hot", "Pricing and contact pages · back 3 days · tapped Call")}${row("Sunrise Realty", "64", "warm", "Looked at Book a visit · came back after 9 days")}${row("Oakline Insurance", "41", "warm", "Read 4 pages · opened Pricing once")}${row("Visitor in Denver, CO", "12", "cool", "One page, left in 10 seconds")}
+<h2>3. Who sent them</h2>${row("ChatGPT", "7", "cool", "visits this week from AI answers")}${row("Perplexity", "3", "cool", "visits this week from AI answers")}${row("Google", "41", "cool", "visits this week")}
+<h2>4. A weekly email, no login needed</h2><div class="row"><div><b>Riverside Dental: your weekly Who's There report</b><span>46 visits, 9 customers interested, 3 hot. Biggest mover: the Pricing page. 10 visits sent by AI assistants.</span></div></div>
+<p style="color:#6b7280;font-size:14px">Everything above is example data. Visitors are shown only if they said yes to the privacy banner, and a visitor who says no is not identified. When we cannot tell who someone is, we say so instead of guessing.</p>
+<p><a class="b" href="${base}/signup">Start for $99/mo →</a><a class="b g" href="${base}/pitch">One-page overview</a></p>`);
+}
+function pitchPage(base) {
+  return shell("One-page overview", `<style>main{max-width:760px}h2{margin-top:1.4em}.pl{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pl div{background:#f7f8fb;border:1px solid #e6e8ee;border-radius:12px;padding:12px 14px}.pl b{font-size:1.2rem}.pl span{display:block;color:#6b7280;font-size:14px}.q{background:#eef2ff;border-left:4px solid #2f5bea;border-radius:0 10px 10px 0;padding:10px 14px;margin:10px 0}@media print{.np{display:none}}</style><h1>Who's There: the one-page overview</h1><p><b>The pitch in one line:</b> "Someone just read your prices. Do you know who they were?"</p>
+<h2>What it does</h2><ul><li>Pings the owner's phone when a customer looks at pricing, contact or booking pages.</li><li>Shows who is interested (when it can be found), ranked, with a built-in lead list.</li><li>Shows which AI assistants (ChatGPT, Perplexity, Claude) send people to the site.</li><li>Consent-first: visitors say yes or no, and can delete their data any time.</li></ul>
+<h2>Plans</h2><div class="pl"><div><b>$99/mo</b><span>Starter · 1 website</span></div><div><b>$199/mo</b><span>Growth · up to 3 websites + CRM push</span></div><div><b>$399/mo</b><span>Pro · up to 10 websites</span></div><div><b>$999/mo</b><span>Agency · up to 50 websites</span></div></div><p style="color:#6b7280;font-size:14px">One-time $497 setup. Card payments add a 5% fee. Bigger networks: Custom.</p>
+<h2>How to sell it in three steps</h2><ol><li><b>Show the demo</b> (60 seconds): <a href="${base}/demo">${ORIGIN}/demo</a></li><li><b>Send your own page or QR code.</b> It credits you automatically.</li><li><b>They sign up on their own</b> and are live in about two minutes. Offer "install it for me" if they are not technical.</li></ol>
+<h2>Answers to the usual questions</h2><div class="q"><b>"Is this legal?"</b> It is built consent-first: a privacy banner, it honors Global Privacy Control and Do Not Track, and it never hands you a stranger's name or email. We are not lawyers, so tell them to run it past their own advisor if they have doubts.</div><div class="q"><b>"I'm not technical."</b> One line pasted on the website, or we do it for them.</div><div class="q"><b>"Why not RB2B or Leadfeeder?"</b> Those are built for contact lists of strangers. This is built to show who is interested, with consent. See the comparison on the main page.</div><div class="q"><b>"What if nobody visits?"</b> Then they find that out too, and the AI-assistant report shows whether AI is sending anyone yet.</div>
+<p class="np"><a href="${base}/">Main page</a> · <button onclick="window.print()" style="font:inherit;padding:10px 18px;border-radius:10px;border:0;background:#2f5bea;color:#fff;font-weight:700">Print</button></p>`);
+}
+function installHelpPage(base, ref) {
+  const r = /^[a-z0-9]{2,30}$/.test(ref || "") ? ref : "";
+  return shell("Install it for me", `<style>input,select,button,textarea{font:inherit;padding:12px;border-radius:10px;border:1px solid #cfd4df;width:100%;margin:6px 0;box-sizing:border-box}button{background:#2f5bea;color:#fff;border:0;font-weight:700}.chk{display:flex;gap:10px;font-size:14px;color:#6b7280;align-items:flex-start}.chk input{width:auto;margin-top:4px}.hp{position:absolute;left:-9999px}</style><h1>We'll install it for you</h1><p>Not technical? No problem. Tell us where your website lives and we will set it up for you. You will not need to touch any code.</p>
+<form id="f"><input name="name" placeholder="Your name" required><input name="email" type="email" placeholder="Your email" required><input name="phone" type="tel" placeholder="Phone (optional)"><input name="website" placeholder="Your website, for example example.com" required><select name="platform"><option>I do not know</option><option>WordPress</option><option>Shopify</option><option>Wix</option><option>Squarespace</option><option>Webflow</option><option>GoDaddy</option><option>Something else</option></select><input class="hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true"><label class="chk"><input type="checkbox" name="ok" required><span>I agree that AIrecommend.ai may contact me by email or phone about installing Who's There. No spam.</span></label><button>Ask for help</button><p id="o" style="color:#0f9d58;font-weight:700"></p></form>
+<script>var f=document.getElementById("f");f.addEventListener("submit",function(e){e.preventDefault();if(f.company.value)return;var b=f.querySelector("button");b.disabled=true;fetch("${base}/api/lead",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:f.name.value,email:f.email.value,phone:f.phone.value,website:f.website.value,message:"INSTALL HELP, platform: "+f.platform.value,ref:${JSON.stringify(r)}})}).then(function(x){return x.json()}).then(function(j){document.getElementById("o").textContent=j.ok?"Thanks! We will be in touch shortly.":(j.error||"Please try again.");if(j.ok)f.reset();b.disabled=false}).catch(function(){document.getElementById("o").textContent="Please try again.";b.disabled=false})});</script>`);
+}
+
 // ---------------------------------------------------------------- CRM: leads, score, status, notes, follow-ups
 const KEY_SQL = ["pric", "contact", "book", "demo", "quote", "schedule", "checkout", "buy", "apply", "get-started", "signup", "sign-up", "consult", "franchise"].map(k => `path LIKE '%${k}%'`).join(" OR ");
 const STATUSES = ["new", "contacted", "won", "lost"];
@@ -716,6 +776,11 @@ export default {
       if (p === "/health") { const h = await healthCheck(env); return json({ service: "known-visitor", ...h }, h.ok ? 200 : 503); }
       if (p === "/reps") return await repsAdmin(request, env, base);
       if (p === "/rep" && request.method === "GET") return await repPortal(request, env, base);
+      if (p === "/mail" && request.method === "GET") return await mailAdmin(request, env, base);
+      if (p === "/api/admin/mail" && request.method === "POST") return await mailSave(request, env);
+      if (p === "/demo" && request.method === "GET") return demoPage(base);
+      if (p === "/pitch" && request.method === "GET") return pitchPage(base);
+      if (p === "/install-help" && request.method === "GET") return installHelpPage(base, u.searchParams.get("ref"));
       if (p === "/api/rep/brand" && request.method === "POST") return await repBrand(request, env);
       { const m = p.match(/^\/r\/([a-z0-9]{2,30})(\/qr)?$/); if (m && request.method === "GET") return m[2] ? await repPoster(env, m[1]) : await repPage(request, env, base, m[1], ctx); }
       if (p === "/crm") return await crmPage(request, env, base);
